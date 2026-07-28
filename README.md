@@ -7,6 +7,18 @@ anywhere in the system.
 
 **CSE311L — Database Systems Lab**
 
+| | |
+| --- | --- |
+| Live interface (GitHub Pages) | <https://mdroman0.github.io/SkillSwapNSU/> |
+| Repository | <https://github.com/MDROMAN0/SkillSwapNSU> |
+| Database script to import | `database/skillexchange_full.sql` |
+| Demo login | `roman.ahmed01@northsouth.edu` / `password123` |
+
+The GitHub Pages link above is the static preview — it shows every screen with
+the real seeded data but cannot write, because Pages serves static files only.
+The Flask build in this repository runs the same interface against MySQL for
+real; see [Running the Flask build](#running-the-flask-build-the-full-working-version).
+
 ---
 
 ## Repository layout
