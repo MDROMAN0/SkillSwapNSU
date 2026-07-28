@@ -264,9 +264,13 @@ function mountShell(active) {
         </div>
       </form>
 
-      <div class="d-flex align-items-center ms-auto">
+      <div class="d-flex align-items-center gap-1 ms-auto">
         ${links}
-        <div class="dropdown ms-2">
+        <button class="theme-toggle ms-2" id="themeToggle" type="button"
+                aria-label="Switch between dark and light theme" title="Switch theme">
+          <i class="bi bi-moon-stars-fill"></i><i class="bi bi-sun-fill"></i>
+        </button>
+        <div class="dropdown ms-1">
           <a class="topnav-link" href="#" data-bs-toggle="dropdown" aria-expanded="false">
             ${avatar(u, 24)}<span>Me <i class="bi bi-caret-down-fill" style="font-size:.55rem"></i></span>
           </a>
@@ -352,9 +356,27 @@ function profileRail(active) {
   </div>`;
 }
 
+/* ---------------------------------------------------------------
+   Theme switch — same behaviour and same storage key as the Flask
+   build, so a student who picks light here keeps it there too.
+   --------------------------------------------------------------- */
+function setTheme(name) {
+  document.documentElement.setAttribute('data-theme', name);
+  try { localStorage.setItem('skillswap-theme', name); } catch (e) { /* ignore */ }
+}
+
+function wireThemeToggle() {
+  const btn = $('#themeToggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    setTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+  });
+}
+
 /* Call once per page: mountShell + left rail + footer year */
 function bootPage(active, railActive = active) {
   if ($('#shellNav')) mountShell(active);
   if ($('#shellRail')) $('#shellRail').innerHTML = profileRail(railActive);
   $$('[data-year]').forEach(el => el.textContent = new Date().getFullYear());
+  wireThemeToggle();
 }

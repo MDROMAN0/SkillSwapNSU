@@ -1,9 +1,20 @@
 {% import "macros.html" as m with context %}<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>{% block title %}SkillSwap NSU{% endblock %}</title>
+{# Applied before first paint so the chosen theme never flashes. #}
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('skillswap-theme');
+      if (!t) t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) { /* private mode — keep the dark default */ }
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
@@ -26,14 +37,14 @@
     <form class="nav-search flex-grow-1 d-none d-md-block" role="search"
           action="{{ url_for('search.search') }}" method="get">
       <div class="input-group input-group-sm">
-        <span class="input-group-text bg-transparent border-0 pe-1"
-              style="background:var(--brand-050)!important"><i class="bi bi-search text-muted-2"></i></span>
-        <input class="form-control border-0" name="q" type="search"
+        <span class="input-group-text pe-1"><i class="bi bi-search"></i></span>
+        <input class="form-control" name="q" type="search" id="navSearch"
                placeholder="Search students, skills or departments" aria-label="Search">
+        <span class="input-group-text ps-1"><span class="kbd" id="kbdHint">Ctrl K</span></span>
       </div>
     </form>
 
-    <div class="d-flex align-items-center ms-auto">
+    <div class="d-flex align-items-center gap-1 ms-auto">
       {% set NAV = [('dashboard', url_for('main.dashboard'), 'house-door', 'Home'),
                     ('search',    url_for('search.search'),  'search', 'Find'),
                     ('requests',  url_for('exchange.index'), 'arrow-left-right', 'Requests'),
@@ -45,12 +56,17 @@
         </a>
       {% endfor %}
 
-      <div class="dropdown ms-2">
+      <button class="theme-toggle ms-2" id="themeToggle" type="button"
+              aria-label="Switch between dark and light theme" title="Switch theme">
+        <i class="bi bi-moon-stars-fill"></i><i class="bi bi-sun-fill"></i>
+      </button>
+
+      <div class="dropdown ms-1">
         <a class="topnav-link" href="#" data-bs-toggle="dropdown" aria-expanded="false">
           {{ m.avatar(me, 24) }}<span>Me <i class="bi bi-caret-down-fill" style="font-size:.55rem"></i></span>
         </a>
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:230px">
-          <li class="px-3 py-2 d-flex gap-2 align-items-center">
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width:238px">
+          <li class="px-2 py-2 d-flex gap-2 align-items-center">
             {{ m.avatar(me, 40) }}
             <div class="lh-sm">
               <div class="fw-semibold">{{ me.name }}</div>
@@ -62,6 +78,8 @@
                 <i class="bi bi-person me-2"></i>View profile</a></li>
           <li><a class="dropdown-item" href="{{ url_for('profile.edit') }}">
                 <i class="bi bi-pencil-square me-2"></i>Edit profile &amp; skills</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('admin.index', tab='analytics') }}">
+                <i class="bi bi-bar-chart-line me-2"></i>Analytics</a></li>
           <li><a class="dropdown-item" href="{{ url_for('admin.index') }}">
                 <i class="bi bi-shield-lock me-2"></i>Admin console</a></li>
           <li><hr class="dropdown-divider"></li>
@@ -85,6 +103,27 @@
 </footer>
 {% endif %}
 
+{% if me and not hide_shell %}
+{# ============================ command palette ============================ #}
+<div class="cmdk-backdrop" id="cmdkBackdrop" role="dialog" aria-modal="true" aria-label="Quick search">
+  <div class="cmdk">
+    <div class="cmdk-input-wrap">
+      <i class="bi bi-search"></i>
+      <input class="cmdk-input" id="cmdkInput" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Search students, skills, departments or jump to a page…"
+             aria-label="Search" aria-controls="cmdkResults" role="combobox" aria-expanded="true">
+      <span class="kbd">Esc</span>
+    </div>
+    <div class="cmdk-results" id="cmdkResults" role="listbox"></div>
+    <div class="cmdk-foot">
+      <span><span class="kbd">↑</span> <span class="kbd">↓</span> to move</span>
+      <span><span class="kbd">↵</span> to open</span>
+      <span class="ms-auto">Every result is one SQL <code>LIKE</code> query</span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {# ============================ flash messages ============================ #}
 <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1080" id="toastHost">
   {% for category, message in get_flashed_messages(with_categories=true) %}
@@ -97,7 +136,7 @@
           <i class="bi bi-{{ {'success':'check-circle','danger':'exclamation-octagon',
                               'warning':'exclamation-triangle'}.get(category, 'info-circle') }} me-1"></i>{{ parts[0] }}
           {% if parts|length > 1 %}
-            <div class="mt-1 small" style="opacity:.85;font-family:ui-monospace,Menlo,Consolas,monospace">{{ parts[1] }}</div>
+            <div class="mt-1 small" style="opacity:.88;font-family:ui-monospace,Menlo,Consolas,monospace">{{ parts[1] }}</div>
           {% endif %}
         </div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto"
@@ -108,7 +147,8 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"
+        {% if me %}data-search-url="{{ url_for('search.api_search') }}"{% endif %}></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

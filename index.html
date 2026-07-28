@@ -1,8 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('skillswap-theme');
+      if (!t) t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  })();
+</script>
+
 <title>SkillSwap NSU &mdash; Trade skills with your classmates</title>
 <meta name="description" content="SkillSwap NSU lets North South University students teach what they know and learn what they want, with no money changing hands. CSE311L Database Systems Lab project.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,6 +33,10 @@
       SkillSwap <span class="brand-tag">NSU</span>
     </a>
     <div class="ms-auto d-flex align-items-center gap-2">
+      <button class="theme-toggle" id="themeToggle" type="button"
+              aria-label="Switch between dark and light theme" title="Switch theme">
+        <i class="bi bi-moon-stars-fill"></i><i class="bi bi-sun-fill"></i>
+      </button>
       <a href="#how" class="btn btn-sm btn-quiet d-none d-sm-inline-flex">How it works</a>
       <a href="login.html" class="btn btn-sm btn-outline-brand">Sign in</a>
       <a href="register.html" class="btn btn-sm btn-brand">Create account</a>
@@ -73,7 +88,7 @@
 </header>
 
 <!-- ============================== stats ============================== -->
-<section class="py-4 bg-white border-bottom" style="border-color:var(--line)!important">
+<section class="py-4 border-bottom" style="border-color:var(--line)!important;background:var(--surface)">
   <div class="container">
     <div class="row g-3" id="statRow"></div>
   </div>
@@ -145,7 +160,7 @@
 </section>
 
 <!-- =========================== skills on offer =========================== -->
-<section class="py-5 bg-white border-top border-bottom" style="border-color:var(--line)!important">
+<section class="py-5 border-top border-bottom" style="border-color:var(--line)!important;background:var(--surface)">
   <div class="container">
     <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
       <div>
@@ -330,6 +345,17 @@
 })();
 
 $$('[data-year]').forEach(el => el.textContent = new Date().getFullYear());
+</script>
+<script>
+  (function () {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('skillswap-theme', next); } catch (e) {}
+    });
+  })();
 </script>
 </body>
 </html>

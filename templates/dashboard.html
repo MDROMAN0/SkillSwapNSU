@@ -15,14 +15,14 @@
     <!-- ---------------------- main column ---------------------- -->
     <div class="col-lg-6 order-lg-2">
 
-      <div class="mb-3">
+      <div class="mb-3 rise rise-1">
         <h1 style="font-size:1.4rem">{{ greeting }}, {{ me.name.split()[0] }}</h1>
         <p class="text-muted-2 mb-0">You are teaching <strong>{{ my_teach|length }}</strong>
           skill{{ '' if my_teach|length == 1 else 's' }}
           and learning <strong>{{ my_learn|length }}</strong>.</p>
       </div>
 
-      <div class="row g-2 mb-4">
+      <div class="row g-2 mb-4 rise rise-2">
         {% for icon, n, label, href in [
             ('bi-inbox', stats.pending, 'Requests to answer', url_for('exchange.index')),
             ('bi-calendar-week', stats.upcoming, 'Upcoming sessions', url_for('sessions.index')),
@@ -31,7 +31,7 @@
           <div class="col-6 col-xl-3">
             <a class="stat d-block text-reset text-decoration-none hover-lift" href="{{ href }}">
               <i class="bi {{ icon }} mb-1" style="color:var(--brand)"></i>
-              <div class="stat-num" style="font-size:1.35rem">{{ n }}</div>
+              <div class="stat-num" style="font-size:1.35rem"{% if n is number %} data-count="{{ n }}">0{% else %}>{{ n }}{% endif %}</div>
               <div class="stat-label">{{ label }}</div>
             </a>
           </div>
@@ -39,7 +39,7 @@
       </div>
 
       <!-- suggested matches: the core of the product -->
-      <section class="panel mb-4">
+      <section class="panel mb-4 rise rise-3">
         <div class="panel-head">
           <h2><i class="bi bi-arrow-left-right me-2" style="color:var(--brand)"></i>Matches for you</h2>
           <a href="{{ url_for('search.search') }}" class="small">Browse everyone</a>
@@ -89,7 +89,7 @@
       </section>
 
       <!-- requests waiting on me -->
-      <section class="panel mb-4">
+      <section class="panel mb-4 rise rise-4">
         <div class="panel-head">
           <h2><i class="bi bi-inbox me-2" style="color:var(--brand)"></i>Waiting for your answer</h2>
           <a href="{{ url_for('exchange.index') }}" class="small">All requests</a>
@@ -129,7 +129,7 @@
       </section>
 
       <!-- next session -->
-      <section class="panel mb-4">
+      <section class="panel mb-4 rise rise-5">
         <div class="panel-head">
           <h2><i class="bi bi-calendar-event me-2" style="color:var(--brand)"></i>Your next sessions</h2>
           <a href="{{ url_for('sessions.index') }}" class="small">All sessions</a>

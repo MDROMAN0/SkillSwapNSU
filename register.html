@@ -1,8 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('skillswap-theme');
+      if (!t) t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  })();
+</script>
+
 <title>Create account &mdash; SkillSwap NSU</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,7 +22,7 @@
 <link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="static/css/style.css" rel="stylesheet">
 </head>
-<body class="bg-white">
+<body>
 
 <div class="container-fluid">
   <div class="row min-vh-100">
@@ -41,7 +52,13 @@
       <p class="small mb-0" style="opacity:.75">CSE311L Database Systems Lab</p>
     </aside>
 
-    <main class="col-lg-8 auth-wrap">
+    <div class="position-absolute top-0 end-0 p-3" style="z-index:5">
+      <button class="theme-toggle" id="themeToggle" type="button"
+              aria-label="Switch between dark and light theme" title="Switch theme">
+        <i class="bi bi-moon-stars-fill"></i><i class="bi bi-sun-fill"></i>
+      </button>
+</div>
+<main class="col-lg-8 auth-wrap">
       <div class="auth-card" style="max-width:560px">
         <a class="brand-mark d-lg-none mb-4" href="index.html">
           <span class="brand-glyph"><i class="bi bi-arrow-left-right"></i></span>
@@ -195,6 +212,17 @@ $('#regForm').addEventListener('submit', e => {
   demoAction('Validation passed. The Flask build hashes the password and runs the '
            + 'INSERT into users plus two INSERTs into userskills.');
 });
+</script>
+<script>
+  (function () {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('skillswap-theme', next); } catch (e) {}
+    });
+  })();
 </script>
 </body>
 </html>

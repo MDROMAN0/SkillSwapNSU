@@ -33,9 +33,15 @@ def close_db(_exc=None):
 
 # ------------------------------------------------------------------ reads
 def query(sql, params=(), one=False):
-    """SELECT -> list of dicts (or a single dict when one=True)."""
+    """
+    SELECT -> list of dicts (or a single dict when one=True).
+
+    `params or None` matters: the connector only interpolates when params is
+    not None, and an empty tuple would still trigger it — which breaks any
+    statement containing a literal %, such as DATE_FORMAT(d, '%Y-%m').
+    """
     cur = get_db().cursor(dictionary=True)
-    cur.execute(sql, params)
+    cur.execute(sql, params or None)
     rows = cur.fetchall()
     cur.close()
     if one:
@@ -46,7 +52,7 @@ def query(sql, params=(), one=False):
 def scalar(sql, params=(), default=None):
     """SELECT that returns exactly one value."""
     cur = get_db().cursor()
-    cur.execute(sql, params)
+    cur.execute(sql, params or None)
     row = cur.fetchone()
     cur.close()
     if row is None or row[0] is None:
@@ -63,7 +69,7 @@ def execute(sql, params=()):
     conn = get_db()
     cur = conn.cursor()
     try:
-        cur.execute(sql, params)
+        cur.execute(sql, params or None)
         conn.commit()
         return cur.lastrowid, cur.rowcount
     except Exception:

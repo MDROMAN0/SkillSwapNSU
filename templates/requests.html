@@ -15,19 +15,19 @@
           one is what unlocks session booking.</p>
       </div>
 
-      <div class="row g-2 mb-3">
+      <div class="row g-2 mb-3 rise rise-1">
         {% for st in ['Pending', 'Accepted', 'Completed', 'Rejected', 'Cancelled'] %}
           <div class="col-4 col-md">
             <a class="stat w-100 text-start border-0 p-2 px-3 d-block text-reset text-decoration-none"
                href="{{ url_for('exchange.index', dir=dir, status=('' if status_f == st else st)) }}">
-              <div class="stat-num" style="font-size:1.25rem">{{ counts[st] }}</div>
+              <div class="stat-num" style="font-size:1.25rem" data-count="{{ counts[st] }}">0</div>
               <div class="stat-label">{{ st }}</div>
             </a>
           </div>
         {% endfor %}
       </div>
 
-      <section class="panel">
+      <section class="panel rise rise-2">
         <div class="panel-head flex-wrap">
           <ul class="nav nav-pills">
             {% for key, label in [('received', 'Received'), ('sent', 'Sent'), ('all', 'All')] %}

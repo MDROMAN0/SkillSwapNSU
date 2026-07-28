@@ -92,6 +92,46 @@ er 3NF part ta ekhane dekhate parba.
 
 ---
 
+## Notun feature gulo (demo te eigulo dekhale beshi number pabe)
+
+**1. Dark / Light theme**
+Upore dan dike chand/surjo icon e click koro — puro site dark theke light e
+switch hobe. Tomar choice browser e mone thake, ar page load er **age** apply
+hoy, tai kono flash hoy na.
+
+**2. Command palette — `Ctrl + K`**
+Je kono page e `Ctrl + K` (ba sudhu `/`) chapo. Ekta search box khulbe —
+student, skill, department likhle sathe sathe result ashe, arrow key diye
+select, Enter e chole jabe. Etar pichone `/api/search` endpoint, jekhane 3 ta
+`LIKE` query cholche. Instructor ke bolte parba: "eta live SQL, cached na."
+
+**3. Analytics dashboard — Admin → Analytics**
+Ekhane 6 ta chart, sob real SQL aggregate theke:
+
+| Chart | Kon SQL |
+| ----- | ------- |
+| Supply vs demand (skill wise) | `GROUP BY skill_id` + `SUM(skill_type='Teach')` |
+| Students per department | `GROUP BY department` |
+| Exchange funnel (5 stage) | 5 ta `COUNT(*)` — request → accepted → session → completed → review |
+| Rating spread | `GROUP BY rating` |
+| Month wise activity | `DATE_FORMAT(created_at,'%Y-%m')` diye 3 ta series |
+| Most active students | `GROUP BY … **HAVING** COUNT(*) >= 2` |
+
+Protita chart er niche **"Table view"** ache — click korle same data table e
+dekha jabe. Color gulo o icchemoto na: colour-blind safety validator diye check
+kora, ar kono chart e du'ta y-axis nei (eta chart design er boro ekta bhul).
+
+**4. Table sort + pagination + CSV**
+Admin er table gulote column header e click korle sort hoy — kintu sort ta
+**SQL er `ORDER BY`** e hoy, Python e na. Niche pagination (`LIMIT 12 OFFSET n`).
+Ar protita tab e **CSV** button — download kore Excel e kholea jabe.
+
+> Chaile bolte paro: sort key ta directly SQL e boshano jay na (column name
+> parameter hote pare na), tai ekta whitelist e check kore tobe boshanor hoy —
+> eta SQL injection theke bachay.
+
+---
+
 ## Kichu hole ki korba
 
 **"Could not reach MySQL"**

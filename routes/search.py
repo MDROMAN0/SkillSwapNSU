@@ -6,7 +6,7 @@ same statement serves all filter combinations without string concatenation
 of user input.
 """
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, jsonify, render_template, request
 
 from db import query
 from helpers import categories, current_user, departments, login_required
@@ -135,3 +135,50 @@ def search():
                            f={'name': f_name, 'skill': f_skill, 'category': f_cat,
                               'department': f_dept, 'level': f_level,
                               'match': only_match, 'sort': sort_by})
+
+
+# ------------------------------------------------------------------ JSON API
+@bp.route('/api/search')
+@login_required
+def api_search():
+    """
+    Backs the Ctrl+K command palette. Three small LIKE queries, each
+    capped, so the palette stays instant no matter how big the tables get.
+    """
+    q = (request.args.get('q') or '').strip()
+    if len(q) < 1:
+        return jsonify(students=[], skills=[], departments=[])
+
+    like = '%' + q + '%'
+    uid = current_user()['user_id']
+
+    students = query("""SELECT u.user_id, u.name, u.department,
+                               (SELECT COUNT(*) FROM userskills us
+                                 WHERE us.user_id = u.user_id
+                                   AND us.skill_type = 'Teach') AS teach_n
+                        FROM users u
+                        WHERE (u.name LIKE %s OR u.email LIKE %s)
+                          AND u.user_id <> %s
+                        ORDER BY u.name
+                        LIMIT 6""", (like, like, uid))
+
+    skills = query("""SELECT s.skill_id, s.skill_name, s.category,
+                             (SELECT COUNT(*) FROM userskills us
+                               WHERE us.skill_id = s.skill_id
+                                 AND us.skill_type = 'Teach') AS teachers,
+                             (SELECT COUNT(*) FROM userskills us
+                               WHERE us.skill_id = s.skill_id
+                                 AND us.skill_type = 'Learn') AS learners
+                      FROM skills s
+                      WHERE s.skill_name LIKE %s OR s.category LIKE %s
+                      ORDER BY s.skill_name
+                      LIMIT 6""", (like, like))
+
+    depts = query("""SELECT department, COUNT(*) AS n
+                     FROM users
+                     WHERE department LIKE %s
+                     GROUP BY department
+                     ORDER BY n DESC
+                     LIMIT 4""", (like,))
+
+    return jsonify(students=students, skills=skills, departments=depts)

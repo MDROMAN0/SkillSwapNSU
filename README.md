@@ -59,10 +59,11 @@ SkillSwapNSU/
 │   └── skillexchange_full.sql  schema + seed in one file (easiest import)
 │
 ├── static/
-│   ├── css/style.css       Theme on top of Bootstrap 5.3
-│   ├── vendor/             Bootstrap 5.3.3 + Bootstrap Icons, served locally
+│   ├── css/style.css       The design system: dark + light tokens, components
+│   ├── vendor/             Bootstrap 5.3.3, Bootstrap Icons, Chart.js — all local
 │   └── js/
-│       ├── app.js          Small client helpers used by the Flask build
+│       ├── app.js          Theme switch, command palette, counters, modals
+│       ├── charts.js       Draws the analytics tab from the SQL aggregates
 │       ├── data.js         Export of seed.sql, used only by the static preview
 │       └── ui.js           Render helpers, used only by the static preview
 │
@@ -134,6 +135,27 @@ If the MySQL root user has a password, set it in `config.py` (or in the
 `SKILLSWAP_DB_PASSWORD` environment variable).
 
 A Bangla version of these steps is in **`KIVABE-CHALABO.md`**.
+
+### What the interface does beyond the basics
+
+| Feature | What it demonstrates |
+| ------- | -------------------- |
+| **Dark / light theme** | Two selected palettes on CSS custom properties, remembered in `localStorage` and applied before first paint so nothing flashes. |
+| **Command palette** (`Ctrl`/`⌘` + `K`, or `/`) | One JSON endpoint, `/api/search`, running three capped `LIKE` queries — students, skills, departments — with keyboard navigation. |
+| **Analytics dashboard** (Admin → Analytics) | Six aggregates charted: supply vs demand per skill, students per department, the exchange funnel, the rating spread, activity per month, and a `GROUP BY … HAVING` leaderboard. Every chart also has a table view. |
+| **Sortable, paged tables** | `ORDER BY` and `LIMIT … OFFSET` run in SQL, never in Python. Sort keys go through a whitelist first, because a column name cannot be a bound parameter. |
+| **CSV export** | Five downloads, two of them straight off the `v_request_details` and `v_session_overview` views. |
+| **Debounced live search** | The Find page re-runs its query 500 ms after you stop typing, so one name is one round trip. |
+
+### Chart colours
+
+The chart palette is not decorative. Series colours were checked with a
+palette validator against the exact surfaces they render on — `#151B2E` in
+dark, `#FFFFFF` in light — for lightness band, chroma, colour-blind
+separation, normal-vision separation and contrast. Nominal categories
+(departments) get one hue; ordered scales (the funnel, 1–5 ratings) get one
+hue stepped light to dark; only genuine series (teach vs learn, the three
+activity lines) use the categorical slots. No chart has two y-axes.
 
 ### Seeing the SQL as it runs
 
@@ -337,6 +359,7 @@ All of these live in `database/queries.sql`, grouped and numbered.
 | Layer          | Technology                             |
 | -------------- | -------------------------------------- |
 | Frontend       | HTML5, CSS3, Bootstrap 5.3, vanilla JS |
+| Charts         | Chart.js 4, vendored locally           |
 | Backend        | Python 3, Flask with Blueprints        |
 | Database       | MySQL on XAMPP                         |
 | DB driver      | `mysql-connector-python`, raw SQL only |

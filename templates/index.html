@@ -74,7 +74,7 @@
 </header>
 
 <!-- ============================== stats ============================== -->
-<section class="py-4 bg-white border-bottom" style="border-color:var(--line)!important">
+<section class="py-4 border-bottom" style="border-color:var(--line)!important;background:var(--surface)">
   <div class="container">
     <div class="row g-3">
       {% for n, label in [(stats.students, 'Students registered'),
@@ -84,7 +84,7 @@
                           (stats.avg or '—', 'Average partner rating')] %}
         <div class="col-6 col-md">
           <div class="stat">
-            <div class="stat-num">{{ n }}</div>
+            <div class="stat-num"{% if n is number %} data-count="{{ n }}">0{% else %}>{{ n }}{% endif %}</div>
             <div class="stat-label">{{ label }}</div>
           </div>
         </div>
@@ -130,7 +130,7 @@
 </section>
 
 <!-- =========================== skills on offer =========================== -->
-<section class="py-5 bg-white border-top border-bottom" style="border-color:var(--line)!important">
+<section class="py-5 border-top border-bottom" style="border-color:var(--line)!important;background:var(--surface)">
   <div class="container">
     <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
       <div>

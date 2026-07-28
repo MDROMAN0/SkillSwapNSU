@@ -2,7 +2,7 @@
 {% set hide_shell = true %}
 {% set hide_footer = true %}
 {% block title %}Sign in &mdash; SkillSwap NSU{% endblock %}
-{% block body_class %} class="bg-white"{% endblock %}
+
 
 {% block body %}
 <div class="container-fluid">
@@ -63,7 +63,7 @@
           <div class="mb-3">
             <label class="form-label" for="email">Email address</label>
             <div class="input-group">
-              <span class="input-group-text bg-white"><i class="bi bi-envelope text-muted-2"></i></span>
+              <span class="input-group-text"><i class="bi bi-envelope text-muted-2"></i></span>
               <input type="email" class="form-control" id="email" name="email"
                      value="{{ form.email }}" autocomplete="username"
                      placeholder="name.surname@northsouth.edu" required>
@@ -74,7 +74,7 @@
           <div class="mb-2">
             <label class="form-label" for="password">Password</label>
             <div class="input-group">
-              <span class="input-group-text bg-white"><i class="bi bi-lock text-muted-2"></i></span>
+              <span class="input-group-text"><i class="bi bi-lock text-muted-2"></i></span>
               <input type="password" class="form-control" id="password" name="password"
                      autocomplete="current-password" placeholder="Your password" required>
               <button class="btn btn-quiet" type="button" id="togglePw"
