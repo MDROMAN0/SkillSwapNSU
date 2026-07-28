@@ -64,6 +64,14 @@ def create_app():
             ctx.update(shell_context(user))
         return ctx
 
+    # ---------------------------------------------------------- cache busting
+    @app.url_defaults
+    def stamp_static(endpoint, values):
+        """Append ?v=ASSET_V to every static URL, so a stale cached
+        stylesheet is never what the browser shows."""
+        if endpoint == 'static' and 'filename' in values:
+            values['v'] = app.config['ASSET_V']
+
     # ---------------------------------------------------------- uploads
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):

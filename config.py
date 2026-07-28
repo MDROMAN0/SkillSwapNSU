@@ -34,6 +34,10 @@ UPLOAD_FOLDER  = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploa
 ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_CONTENT_LENGTH = 2 * 1024 * 1024        # 2 MB profile pictures
 
+# Bumped whenever the CSS or JS changes, appended to every static URL so a
+# browser that cached the old theme picks the new one up immediately.
+ASSET_V = '2'
+
 # Show the SQL statement behind every write action in the toast.
 # Handy while demonstrating the project; set to False for a clean UI.
 SHOW_SQL_TOASTS = True
