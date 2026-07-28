@@ -12,16 +12,33 @@ echo   SkillSwap NSU  -  starting the web server
 echo   --------------------------------------------------
 echo.
 
-REM ---- find Python ------------------------------------------------
+REM ---- find Python -------------------------------------------------
+REM  Each candidate is actually RUN, not just looked up on the PATH.
+REM  Windows ships a fake python.exe that only opens the Microsoft Store,
+REM  and "where python" happily finds that one - running it does not work.
 set "PY="
-where py >nul 2>&1 && set "PY=py -3"
-if not defined PY where python >nul 2>&1 && set "PY=python"
+py -3 -c "import sys" >nul 2>&1 && set "PY=py -3"
+if not defined PY (
+  python -c "import sys" >nul 2>&1 && set "PY=python"
+)
+if not defined PY (
+  python3 -c "import sys" >nul 2>&1 && set "PY=python3"
+)
 
 if not defined PY (
-  echo   Python is not installed, or it is not on your PATH.
+  echo   Python is not installed on this computer.
   echo.
-  echo   Install it from https://www.python.org/downloads/
-  echo   and tick "Add python.exe to PATH" on the first screen.
+  echo   Windows has a placeholder "python" that only opens the Microsoft
+  echo   Store, which is why you may see "Python was not found".
+  echo.
+  echo   Install the real thing:
+  echo     https://www.python.org/downloads/
+  echo   On the FIRST installer screen, tick "Add python.exe to PATH",
+  echo   then press "Install Now". Close this window and run this file
+  echo   again afterwards.
+  echo.
+  echo   You do NOT need Python for the GitHub Pages version of the site -
+  echo   only for this full Flask build that talks to MySQL.
   echo.
   pause
   exit /b 1
