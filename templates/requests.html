@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% set nav_active = 'requests' %}
+{% set rail_active = 'requests' %}
+{% block title %}Requests &mdash; SkillSwap NSU{% endblock %}
+
+{% block body %}
+<main class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-3"><div class="rail-sticky">{% include "_rail.html" %}</div></div>
+
+    <div class="col-lg-9">
+      <div class="mb-3">
+        <h1 style="font-size:1.4rem;margin-bottom:2px">Exchange requests</h1>
+        <p class="text-muted-2 small mb-0">Every request carries one status. Accepting
+          one is what unlocks session booking.</p>
+      </div>
+
+      <div class="row g-2 mb-3">
+        {% for st in ['Pending', 'Accepted', 'Completed', 'Rejected', 'Cancelled'] %}
+          <div class="col-4 col-md">
+            <a class="stat w-100 text-start border-0 p-2 px-3 d-block text-reset text-decoration-none"
+               href="{{ url_for('exchange.index', dir=dir, status=('' if status_f == st else st)) }}">
+              <div class="stat-num" style="font-size:1.25rem">{{ counts[st] }}</div>
+              <div class="stat-label">{{ st }}</div>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+
+      <section class="panel">
+        <div class="panel-head flex-wrap">
+          <ul class="nav nav-pills">
+            {% for key, label in [('received', 'Received'), ('sent', 'Sent'), ('all', 'All')] %}
+              <li class="nav-item">
+                <a class="nav-link btn-sm {{ 'active' if dir == key }}"
+                   href="{{ url_for('exchange.index', dir=key, status=status_f) }}">{{ label }}</a></li>
+            {% endfor %}
+          </ul>
+          <form method="get" action="{{ url_for('exchange.index') }}">
+            <input type="hidden" name="dir" value="{{ dir }}">
+            <select class="form-select form-select-sm w-auto" name="status"
+                    onchange="this.form.submit()">
+              <option value="">Every status</option>
+              {% for st in ['Pending', 'Accepted', 'Completed', 'Rejected', 'Cancelled'] %}
+                <option {{ 'selected' if status_f == st }}>{{ st }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+
+        <div class="panel-body">
+          {% if not rows %}
+            {{ m.empty('inbox', 'No ' ~ (status_f|lower ~ ' ' if status_f else '') ~ 'request in this list.',
+                       url_for('search.search'), 'Find a partner') }}
+          {% endif %}
+
+          {% for r in rows %}
+            <article class="{{ '' if loop.last else 'mb-4 pb-4 border-bottom' }}"
+                     style="{{ '' if loop.last else 'border-color:var(--line)!important' }}">
+              <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                <div class="d-flex gap-2 align-items-center min-w-0">
+                  {{ m.av(r.p_id, r.p_name, 'default.png', 40) }}
+                  <div class="lh-sm min-w-0">
+                    <a href="{{ url_for('profile.view', user_id=r.p_id) }}"
+                       class="fw-semibold text-reset">{{ r.p_name }}</a>
+                    <div class="small text-muted-2">{{ r.p_dept }} &middot;
+                      {{ 'you sent this' if r.dir == 'sent' else 'sent to you' }}
+                      on {{ r.created_at|fmt_date }}</div>
+                  </div>
+                </div>
+                <div class="text-end">
+                  {{ m.pill(r.status) }}
+                  <div class="small text-muted-2 mt-1">
+                    {% if r.total_reviews %}{{ r.avg_rating }} out of 5{% else %}No rating yet{% endif %}</div>
+                </div>
+              </div>
+
+              {{ m.swap('You teach', r.i_give, r.i_give_cat, 'You learn', r.i_get, r.i_get_cat) }}
+
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                {% set nxt = url_for('exchange.index', dir=dir, status=status_f) %}
+
+                {% if r.status == 'Pending' and r.dir == 'received' %}
+                  <form method="post" action="{{ url_for('exchange.accept', request_id=r.request_id) }}">
+                    <input type="hidden" name="next" value="{{ nxt }}">
+                    <button class="btn btn-sm btn-brand"><i class="bi bi-check-lg me-1"></i>Accept</button>
+                  </form>
+                  <form method="post" action="{{ url_for('exchange.reject', request_id=r.request_id) }}">
+                    <input type="hidden" name="next" value="{{ nxt }}">
+                    <button class="btn btn-sm btn-quiet"><i class="bi bi-x-lg me-1"></i>Decline</button>
+                  </form>
+
+                {% elif r.status == 'Pending' and r.dir == 'sent' %}
+                  <span class="small text-muted-2 me-2 align-self-center">Waiting for a reply</span>
+                  <form method="post" action="{{ url_for('exchange.cancel', request_id=r.request_id) }}">
+                    <input type="hidden" name="next" value="{{ nxt }}">
+                    <button class="btn btn-sm btn-quiet">
+                      <i class="bi bi-slash-circle me-1"></i>Cancel request</button>
+                  </form>
+
+                {% elif r.status == 'Accepted' %}
+                  {% if r.booked %}
+                    <a class="btn btn-sm btn-quiet" href="{{ url_for('sessions.index') }}">
+                      <i class="bi bi-calendar-check me-1"></i>{{ r.booked }}
+                      session{{ '' if r.booked == 1 else 's' }} booked</a>
+                  {% else %}
+                    <a class="btn btn-sm btn-brand"
+                       href="{{ url_for('sessions.index', book=r.request_id) }}">
+                      <i class="bi bi-calendar-plus me-1"></i>Schedule a session</a>
+                  {% endif %}
+                  <form method="post" action="{{ url_for('exchange.complete', request_id=r.request_id) }}">
+                    <input type="hidden" name="next" value="{{ nxt }}">
+                    <button class="btn btn-sm btn-quiet">
+                      <i class="bi bi-patch-check me-1"></i>Mark completed</button>
+                  </form>
+                  <form method="post" action="{{ url_for('exchange.cancel', request_id=r.request_id) }}">
+                    <input type="hidden" name="next" value="{{ nxt }}">
+                    <button class="btn btn-sm btn-quiet">
+                      <i class="bi bi-slash-circle me-1"></i>Cancel</button>
+                  </form>
+
+                {% elif r.status == 'Completed' %}
+                  <a class="btn btn-sm btn-quiet" href="{{ url_for('reviews.index') }}">
+                    <i class="bi bi-star me-1"></i>Reviews</a>
+
+                {% else %}
+                  <span class="small text-muted-2 align-self-center">No action available</span>
+                {% endif %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+{% endblock %}

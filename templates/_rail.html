@@ -1,0 +1,44 @@
+{# Left rail: mini profile card + section navigation.
+   Set `rail_active` in the page that includes this. #}
+<div class="panel overflow-hidden">
+  <div class="profile-card-cover"></div>
+  <div class="profile-card-body">
+    {{ m.avatar(me, 88) }}
+    <h3 class="mt-2 mb-0" style="font-size:1.02rem">{{ me.name }}</h3>
+    <div class="small text-muted-2">{{ me.department }} &middot; NSU</div>
+    <div class="mt-2 d-flex justify-content-center align-items-center gap-1">
+      {{ m.stars(my_rating.avg) }}
+      <span class="small text-muted-2">{% if my_rating.count %}{{ my_rating.avg }} ({{ my_rating.count }}){% endif %}</span>
+    </div>
+    <div class="d-flex justify-content-center gap-3 mt-3 pt-3 border-top">
+      <div><div class="fw-bold" style="color:var(--brand-700)">{{ teach_count }}</div>
+           <div class="small text-muted-2" style="font-size:11.5px">Teaching</div></div>
+      <div><div class="fw-bold" style="color:var(--brand-700)">{{ learn_count }}</div>
+           <div class="small text-muted-2" style="font-size:11.5px">Learning</div></div>
+      <div><div class="fw-bold" style="color:var(--brand-700)">{{ exchange_count }}</div>
+           <div class="small text-muted-2" style="font-size:11.5px">Exchanges</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-body tight">
+    <nav class="side-nav d-grid gap-1">
+      {% set ITEMS = [
+        ('dashboard', url_for('main.dashboard'),                     'house-door',       'Home',           0),
+        ('search',    url_for('search.search'),                      'search',           'Find a partner', 0),
+        ('requests',  url_for('exchange.index'),                     'arrow-left-right', 'Requests',       pending_count),
+        ('sessions',  url_for('sessions.index'),                     'calendar-event',   'Sessions',       upcoming_count),
+        ('reviews',   url_for('reviews.index'),                      'star',             'Reviews',        my_rating.count),
+        ('profile',   url_for('profile.view', user_id=me.user_id),   'person',           'My profile',     0),
+        ('edit',      url_for('profile.edit'),                       'pencil-square',    'Edit profile',   0),
+        ('admin',     url_for('admin.index'),                        'shield-lock',      'Admin console',  0)] %}
+      {% for key, href, icon, label, count in ITEMS %}
+        <a class="nav-link {{ 'active' if key == rail_active }}" href="{{ href }}">
+          <i class="bi bi-{{ icon }}"></i><span>{{ label }}</span>
+          {% if count %}<span class="count">{{ count }}</span>{% endif %}
+        </a>
+      {% endfor %}
+    </nav>
+  </div>
+</div>

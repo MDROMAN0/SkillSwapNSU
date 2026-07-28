@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% set nav_active = 'reviews' %}
+{% set rail_active = 'reviews' %}
+{% block title %}Reviews &mdash; SkillSwap NSU{% endblock %}
+
+{% block body %}
+<main class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-3"><div class="rail-sticky">{% include "_rail.html" %}</div></div>
+
+    <div class="col-lg-9">
+      <div class="mb-3">
+        <h1 style="font-size:1.4rem;margin-bottom:2px">Reviews</h1>
+        <p class="text-muted-2 small mb-0">A review can only be written after a
+          completed session, and each partner may write one per session.</p>
+      </div>
+
+      <!-- ---------- waiting to be written ---------- -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2><i class="bi bi-pencil-square me-2" style="color:var(--brand)"></i>Sessions you can review</h2>
+        </div>
+        <div class="panel-body">
+          {% if not to_review %}
+            {{ m.empty('check2-circle', 'You have reviewed every completed session. Nothing pending.') }}
+          {% else %}
+            {% for s in to_review %}
+              <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+                <div class="d-flex gap-2 align-items-center min-w-0">
+                  {{ m.av(s.p_id, s.p_name, 'default.png', 40) }}
+                  <div class="lh-sm min-w-0">
+                    <div class="fw-semibold">{{ s.p_name }}</div>
+                    <div class="small text-muted-2">{{ s.skill_name }} &middot;
+                      {{ s.session_date|fmt_date }} &middot; {{ s.duration }} min</div>
+                  </div>
+                </div>
+                <button class="btn btn-sm btn-brand" type="button"
+                        data-review-session="{{ s.session_id }}"
+                        data-partner="{{ s.p_name }}"
+                        data-meta="{{ s.skill_name }} · {{ s.session_date|fmt_date }} · {{ s.duration }} min · {{ s.mode }}">
+                  <i class="bi bi-star me-1"></i>Rate {{ s.p_name.split()[0] }}</button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- ---------- summary + lists ---------- -->
+      {% set rows = received if tab == 'received' else given %}
+      <section class="panel">
+        <div class="panel-head flex-wrap">
+          <ul class="nav nav-pills">
+            {% for key, label in [('received', 'About you'), ('given', 'Written by you')] %}
+              <li class="nav-item"><a class="nav-link btn-sm {{ 'active' if tab == key }}"
+                 href="{{ url_for('reviews.index', tab=key) }}">{{ label }}</a></li>
+            {% endfor %}
+          </ul>
+          <span class="small text-muted-2">{{ rows|length }}
+            review{{ '' if rows|length == 1 else 's' }}</span>
+        </div>
+        <div class="panel-body">
+          {% if not rows %}
+            {{ m.empty('chat-quote',
+                 'Nobody has reviewed you yet. Finish a session and your partner can rate you.'
+                 if tab == 'received' else 'You have not written a review yet.',
+                 url_for('sessions.index'), 'Open sessions') }}
+          {% else %}
+            {% if tab == 'received' and my_rating.count %}
+              <div class="row g-3 mb-3 pb-3 border-bottom" style="border-color:var(--line)!important">
+                <div class="col-sm-4 text-center">
+                  <div class="stat-num" style="font-size:2.4rem">{{ my_rating.avg }}</div>
+                  {{ m.stars(my_rating.avg) }}
+                  <div class="small text-muted-2 mt-1">{{ my_rating.count }}
+                    review{{ '' if my_rating.count == 1 else 's' }}</div>
+                </div>
+                <div class="col-sm-8">{{ m.spread_bars(spread) }}</div>
+              </div>
+            {% endif %}
+
+            {% for r in rows %}
+              <div class="d-flex gap-2 mb-3 pb-3 border-bottom" style="border-color:var(--line)!important">
+                {{ m.av(r.user_id, r.name, 'default.png', 40) }}
+                <div class="min-w-0 flex-grow-1">
+                  <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <a href="{{ url_for('profile.view', user_id=r.user_id) }}"
+                       class="fw-semibold text-reset">{{ r.name }}</a>
+                    {{ m.stars(r.rating) }}
+                    <span class="small text-muted-2">{{ r.created_at|fmt_date }}</span>
+                  </div>
+                  <div class="small text-muted-2">
+                    {{ 'Reviewed you' if tab == 'received' else 'You reviewed them' }}
+                    {%- if r.skill_name %} after a {{ r.skill_name }} session{% endif %}
+                    &middot; session #{{ r.session_id }}</div>
+                  <p class="mb-0 mt-1">{{ r.comment }}</p>
+                </div>
+                {% if tab == 'given' %}
+                  <form method="post" action="{{ url_for('reviews.delete', review_id=r.review_id) }}"
+                        data-confirm="Delete this review?">
+                    <button class="btn btn-sm btn-quiet align-self-start" type="submit">
+                      <i class="bi bi-trash"></i><span class="visually-hidden">Delete</span></button>
+                  </form>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<!-- ===================== review modal ===================== -->
+<div class="modal fade" id="revModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:var(--r-lg)">
+      <div class="modal-header">
+        <h5 class="modal-title">Leave a review</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{{ url_for('reviews.add') }}" novalidate>
+        <input type="hidden" name="session_id" id="revSessionId">
+        <input type="hidden" name="rating" id="ratingValue">
+        <div class="modal-body">
+          <div class="mb-3">
+            <div class="d-flex gap-2 align-items-center panel p-2"
+                 style="background:var(--brand-050);border-color:var(--brand-100)">
+              <div class="lh-sm">
+                <div class="fw-semibold" id="revPartner"></div>
+                <div class="small text-muted-2" id="revMeta"></div>
+              </div>
+            </div>
+          </div>
+
+          <label class="form-label d-block">Your rating</label>
+          <div class="star-input mb-1" id="starInput" role="radiogroup" aria-label="Rating out of five">
+            {% for n in range(1, 6) %}
+              <i class="bi bi-star-fill" data-star="{{ n }}" role="radio"
+                 aria-checked="false" tabindex="0" aria-label="{{ n }} out of 5"></i>
+            {% endfor %}
+          </div>
+          <div class="small text-muted-2 mb-3" id="ratingHint">Pick a score from 1 to 5.</div>
+
+          <label class="form-label" for="revText">Comment</label>
+          <textarea class="form-control" id="revText" name="comment" rows="3" maxlength="200"
+            data-counter="revCount"
+            placeholder="What went well? What could have been better?"></textarea>
+          <div class="form-text"><span id="revCount">0</span> / 200 characters</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-quiet btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-brand btn-sm">Publish review</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if preset %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.querySelector('[data-review-session="{{ preset }}"]');
+    if (btn) setTimeout(() => btn.click(), 250);
+  });
+</script>
+{% endif %}
+{% endblock %}

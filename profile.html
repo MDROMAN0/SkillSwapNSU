@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile &mdash; SkillSwap NSU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="shellNav"></div>
+
+<main class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div id="header"></div>
+
+      <section class="panel">
+        <div class="panel-head"><h2><i class="bi bi-mortarboard me-2" style="color:var(--brand)"></i>Skills</h2></div>
+        <div class="panel-body" id="skillBlocks"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2><i class="bi bi-chat-quote me-2" style="color:var(--brand)"></i>Reviews</h2>
+          <span class="small text-muted-2" id="reviewSummary"></span>
+        </div>
+        <div class="panel-body" id="reviewList"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2><i class="bi bi-clock-history me-2" style="color:var(--brand)"></i>Exchange history</h2></div>
+        <div class="table-responsive"><table class="table table-clean" id="historyTable"></table></div>
+      </section>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="rail-sticky" id="sideCol"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer py-3 mt-4">
+  <div class="container small d-flex flex-wrap justify-content-between gap-2">
+    <span>SkillSwap NSU &middot; CSE311L Database Systems Lab</span>
+    <span>&copy; <span data-year></span></span>
+  </div>
+</footer>
+
+<script src="static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="static/js/data.js"></script>
+<script src="static/js/ui.js"></script>
+<script>
+const viewedId = Number(param('id', DEMO_USER_ID));
+const P = userById(viewedId) || me();
+const isMe = P.user_id === DEMO_USER_ID;
+
+bootPage('search', isMe ? 'profile' : 'search');
+document.title = P.name + ' — SkillSwap NSU';
+
+const teach = skillsOf(P.user_id, 'Teach');
+const learn = skillsOf(P.user_id, 'Learn');
+const rate  = ratingOf(P.user_id);
+const myTeachIds = new Set(skillsOf(DEMO_USER_ID, 'Teach').map(s => s.skill_id));
+const myLearnIds = new Set(skillsOf(DEMO_USER_ID, 'Learn').map(s => s.skill_id));
+
+/* ---------------- header card ---------------- */
+(function () {
+  const done = REQUESTS.filter(r =>
+    (r.sender_id === P.user_id || r.receiver_id === P.user_id) && r.status === 'Completed').length;
+  const hours = Math.round(SESSIONS.filter(s => {
+    const req = requestOfSession(s);
+    return s.status === 'Completed' && req &&
+           (req.sender_id === P.user_id || req.receiver_id === P.user_id);
+  }).reduce((t, s) => t + s.duration, 0) / 60);
+
+  $('#header').innerHTML = `
+  <div class="panel overflow-hidden mb-3">
+    <div class="profile-card-cover" style="height:96px"></div>
+    <div class="px-3 px-sm-4 pb-3">
+      <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+        <div class="d-flex align-items-end gap-3" style="margin-top:-44px">
+          ${avatar(P, 88)}
+          <div class="pb-1">
+            <h1 style="font-size:1.5rem;margin-bottom:0">${esc(P.name)}</h1>
+            <div class="text-muted-2">${esc(P.department)} &middot; North South University</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 pb-1">
+          ${isMe
+            ? `<a class="btn btn-sm btn-brand" href="edit-profile.html">
+                 <i class="bi bi-pencil-square me-1"></i>Edit profile</a>`
+            : `<button class="btn btn-sm btn-brand" onclick="scrollTo({top:document.body.scrollHeight,behavior:'smooth'})">
+                 <i class="bi bi-send me-1"></i>Propose an exchange</button>
+               <a class="btn btn-sm btn-quiet" href="search.html">Back to search</a>`}
+        </div>
+      </div>
+
+      <p class="mt-3 mb-3">${esc(P.bio)}</p>
+
+      <div class="d-flex flex-wrap gap-4 pt-3 border-top" style="border-color:var(--line)!important">
+        <div><div class="small-label">Rating</div>
+          <div class="d-flex align-items-center gap-1">${stars(rate.avg)}
+            <span class="small text-muted-2">${rate.count ? rate.avg + ' (' + rate.count + ')' : 'None yet'}</span>
+          </div></div>
+        <div><div class="small-label">Completed exchanges</div>
+          <div class="fw-semibold">${done}</div></div>
+        <div><div class="small-label">Teaching time</div>
+          <div class="fw-semibold">${hours} hours</div></div>
+        <div><div class="small-label">Member since</div>
+          <div class="fw-semibold">${fmtDate(P.joined)}</div></div>
+      </div>
+    </div>
+  </div>`;
+})();
+
+/* ---------------- skills ---------------- */
+(function () {
+  const group = (list, kind) => {
+    if (!list.length) return `<p class="small text-muted-2 mb-0">Nothing listed yet.</p>`;
+    return `<div class="d-flex flex-wrap gap-1">${list.map(s => {
+      const mine = kind === 'Teach' ? myLearnIds.has(s.skill_id) : myTeachIds.has(s.skill_id);
+      return skillChip(s, kind).replace('</a>',
+        (mine ? ` <i class="bi bi-check-circle-fill" style="color:var(--ok);font-size:10px"
+                    title="Matches your profile"></i>` : '') + '</a>');
+    }).join('')}</div>`;
+  };
+
+  $('#skillBlocks').innerHTML = `
+    <div class="small-label mb-2">Can teach (${teach.length})</div>
+    ${group(teach, 'Teach')}
+    <hr style="border-color:var(--line)">
+    <div class="small-label mb-2">Wants to learn (${learn.length})</div>
+    ${group(learn, 'Learn')}
+    ${isMe ? '' : `<p class="small text-muted-2 mt-3 mb-0">
+      <i class="bi bi-check-circle-fill me-1" style="color:var(--ok)"></i>
+      marks a skill that lines up with your own profile.</p>`}`;
+})();
+
+/* ---------------- reviews ---------------- */
+(function () {
+  const rows = REVIEWS.filter(r => r.reviewee_id === P.user_id).reverse();
+  $('#reviewSummary').textContent = rate.count
+    ? `${rate.avg} out of 5 from ${rate.count} review${rate.count === 1 ? '' : 's'}`
+    : 'No reviews yet';
+
+  if (!rows.length) {
+    $('#reviewList').innerHTML = empty('chat-quote',
+      isMe ? 'Finish a session and your partner can leave the first review.'
+           : 'This student has not been reviewed yet.');
+    return;
+  }
+
+  const spread = [5, 4, 3, 2, 1].map(n => ({
+    n, count: rows.filter(r => r.rating === n).length
+  }));
+
+  $('#reviewList').innerHTML = `
+    <div class="row g-3 mb-3 pb-3 border-bottom" style="border-color:var(--line)!important">
+      <div class="col-sm-4 text-center">
+        <div class="stat-num" style="font-size:2.4rem">${rate.avg}</div>
+        ${stars(rate.avg)}
+        <div class="small text-muted-2 mt-1">${rate.count} review${rate.count === 1 ? '' : 's'}</div>
+      </div>
+      <div class="col-sm-8">
+        ${spread.map(s => `
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="small text-muted-2" style="width:12px">${s.n}</span>
+            <i class="bi bi-star-fill" style="color:var(--star);font-size:10px"></i>
+            <div class="progress flex-grow-1" style="height:6px">
+              <div class="progress-bar" style="width:${rows.length ? (100 * s.count / rows.length) : 0}%;background:var(--brand)"></div>
+            </div>
+            <span class="small text-muted-2" style="width:18px">${s.count}</span>
+          </div>`).join('')}
+      </div>
+    </div>` + rows.map(r => {
+      const from = userById(r.reviewer_id);
+      const ses = SESSIONS.find(s => s.session_id === r.session_id);
+      const req = ses ? requestOfSession(ses) : null;
+      const skill = req ? skillById(req.sender_id === P.user_id ? req.teach_skill : req.learn_skill) : null;
+      return `
+      <div class="d-flex gap-2 mb-3">
+        ${avatar(from, 40)}
+        <div class="min-w-0">
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="profile.html?id=${from.user_id}" class="fw-semibold text-reset">${esc(from.name)}</a>
+            ${stars(r.rating)}
+            <span class="small text-muted-2">${fmtDate(r.created)}</span>
+          </div>
+          <div class="small text-muted-2">
+            ${skill ? 'After a ' + esc(skill.skill_name) + ' session' : 'After a session'}</div>
+          <p class="mb-0 mt-1">${esc(r.comment)}</p>
+        </div>
+      </div>`;
+    }).join('');
+})();
+
+/* ---------------- exchange history ---------------- */
+(function () {
+  const rows = REQUESTS.filter(r => r.sender_id === P.user_id || r.receiver_id === P.user_id)
+                       .sort((a, b) => b.created.localeCompare(a.created));
+  if (!rows.length) {
+    $('#historyTable').outerHTML = `<div class="panel-body">${empty('inbox', 'No exchange yet.')}</div>`;
+    return;
+  }
+  $('#historyTable').innerHTML = `
+    <thead><tr><th>Partner</th><th>Taught</th><th>Learned</th><th>Status</th><th>Opened</th></tr></thead>
+    <tbody>${rows.map(r => {
+      const sent = r.sender_id === P.user_id;
+      const partner = userById(sent ? r.receiver_id : r.sender_id);
+      const gave = skillById(sent ? r.teach_skill : r.learn_skill);
+      const got  = skillById(sent ? r.learn_skill : r.teach_skill);
+      return `<tr>
+        <td><a href="profile.html?id=${partner.user_id}" class="text-reset fw-semibold">${esc(partner.name)}</a>
+            <div class="small text-muted-2">${sent ? 'Request sent' : 'Request received'}</div></td>
+        <td>${esc(gave.skill_name)}</td>
+        <td>${esc(got.skill_name)}</td>
+        <td>${pill(r.status)}</td>
+        <td class="text-muted-2">${fmtDate(r.created)}</td>
+      </tr>`;
+    }).join('')}</tbody>`;
+})();
+
+/* ---------------- right column ---------------- */
+(function () {
+  if (isMe) { $('#sideCol').innerHTML = profileRail('profile'); return; }
+
+  const theyTeachIWant = teach.filter(s => myLearnIds.has(s.skill_id));
+  const theyWantITeach = learn.filter(s => myTeachIds.has(s.skill_id));
+  const existing = REQUESTS.find(r =>
+    (r.sender_id === DEMO_USER_ID && r.receiver_id === P.user_id) ||
+    (r.receiver_id === DEMO_USER_ID && r.sender_id === P.user_id));
+
+  const teachOpts = skillsOf(DEMO_USER_ID, 'Teach')
+    .map(s => `<option ${theyWantITeach[0]?.skill_id === s.skill_id ? 'selected' : ''}
+                 value="${s.skill_id}">${esc(s.skill_name)}</option>`).join('');
+  const learnOpts = teach
+    .map(s => `<option ${theyTeachIWant[0]?.skill_id === s.skill_id ? 'selected' : ''}
+                 value="${s.skill_id}">${esc(s.skill_name)}</option>`).join('');
+
+  $('#sideCol').innerHTML = `
+  <section class="panel" id="proposal">
+    <div class="panel-head"><h3><i class="bi bi-send me-2"></i>Propose an exchange</h3></div>
+    <div class="panel-body">
+      ${existing ? `
+        <div class="alert alert-light border small mb-3">
+          You already have a request with ${esc(P.name.split(' ')[0])} &mdash;
+          currently ${pill(existing.status)}.
+          <a href="requests.html">Open requests</a>
+        </div>` : ''}
+
+      ${(theyTeachIWant.length && theyWantITeach.length) ? `
+        <div class="mb-3">${swapCard(
+          'You teach', theyWantITeach[0].skill_name, 'On their learn list',
+          'You learn', theyTeachIWant[0].skill_name, esc(theyTeachIWant[0].proficiency) + ' level')}
+        </div>` : `
+        <p class="small text-muted-2">There is no automatic two-way match here, but
+          you can still propose any pair of skills.</p>`}
+
+      <div class="mb-2">
+        <label class="form-label" for="giveSel">I will teach</label>
+        <select class="form-select form-select-sm" id="giveSel">${teachOpts}</select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="takeSel">I want to learn</label>
+        <select class="form-select form-select-sm" id="takeSel">${learnOpts}</select>
+      </div>
+      <button class="btn btn-brand btn-sm w-100"
+        onclick="demoAction('INSERT INTO exchangerequests (sender_id, receiver_id, teach_skill, learn_skill, status) VALUES (${DEMO_USER_ID}, ${P.user_id}, ' + $('#giveSel').value + ', ' + $('#takeSel').value + ', Pending)')">
+        Send request</button>
+      <p class="small text-muted-2 mt-2 mb-0">They will see it under Requests and can
+        accept or decline.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h3><i class="bi bi-people me-2"></i>Also in ${esc(P.department)}</h3></div>
+    <div class="panel-body tight py-2" id="sameDept"></div>
+  </section>`;
+
+  const peers = USERS.filter(u => u.department === P.department
+                                && u.user_id !== P.user_id && u.user_id !== DEMO_USER_ID)
+                     .slice(0, 5);
+  $('#sameDept').innerHTML = peers.length ? peers.map(u => {
+    const r = ratingOf(u.user_id);
+    return `<a class="d-flex gap-2 align-items-center py-2 text-reset text-decoration-none"
+               href="profile.html?id=${u.user_id}">
+      ${avatar(u, 32)}
+      <div class="lh-sm min-w-0 flex-grow-1">
+        <div class="fw-semibold text-truncate" style="font-size:13px">${esc(u.name)}</div>
+        <div class="small text-muted-2" style="font-size:11.5px">
+          ${skillsOf(u.user_id, 'Teach').length} skills to teach</div>
+      </div>
+      ${r.count ? `<span class="small"><span class="rating-num">${r.avg}</span>
+        <i class="bi bi-star-fill" style="color:var(--star);font-size:10px"></i></span>` : ''}
+    </a>`;
+  }).join('') : '<p class="small text-muted-2 mb-0 py-2">Nobody else from this department yet.</p>';
+})();
+</script>
+</body>
+</html>

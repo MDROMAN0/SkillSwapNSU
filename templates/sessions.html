@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% set nav_active = 'sessions' %}
+{% set rail_active = 'sessions' %}
+{% block title %}Sessions &mdash; SkillSwap NSU{% endblock %}
+
+{% block body %}
+<main class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-3"><div class="rail-sticky">{% include "_rail.html" %}</div></div>
+
+    <div class="col-lg-9">
+      <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+        <div>
+          <h1 style="font-size:1.4rem;margin-bottom:2px">Sessions</h1>
+          <p class="text-muted-2 small mb-0">A session belongs to one accepted request.
+            Online sessions carry a link, offline ones a spot on campus.</p>
+        </div>
+        <button class="btn btn-sm btn-brand" data-bs-toggle="modal" data-bs-target="#bookModal">
+          <i class="bi bi-calendar-plus me-1"></i>Schedule a session</button>
+      </div>
+
+      <div class="row g-2 mb-3">
+        {% for n, label in [(stats.upcoming, 'Upcoming'), (stats.completed, 'Completed'),
+                            (stats.hours ~ ' hrs', 'Time exchanged'),
+                            (stats.online ~ ' / ' ~ stats.offline, 'Online / Offline')] %}
+          <div class="col-6 col-md-3"><div class="stat">
+            <div class="stat-num" style="font-size:1.25rem">{{ n }}</div>
+            <div class="stat-label">{{ label }}</div></div></div>
+        {% endfor %}
+      </div>
+
+      <section class="panel">
+        <div class="panel-head flex-wrap">
+          <ul class="nav nav-pills">
+            {% for key, label in [('upcoming', 'Upcoming'), ('past', 'Completed'),
+                                  ('cancelled', 'Cancelled')] %}
+              <li class="nav-item"><a class="nav-link btn-sm {{ 'active' if tab == key }}"
+                 href="{{ url_for('sessions.index', tab=key, view=view) }}">{{ label }}</a></li>
+            {% endfor %}
+          </ul>
+          <div class="btn-group btn-group-sm" role="group" aria-label="View style">
+            {% for key, label in [('cards', 'Cards'), ('table', 'Table')] %}
+              <a class="btn btn-quiet {{ 'active' if view == key }}"
+                 href="{{ url_for('sessions.index', tab=tab, view=key) }}">{{ label }}</a>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if not rows %}
+          <div class="panel-body">
+            {{ m.empty('calendar-x',
+                 {'upcoming': 'Nothing booked. Accept a request first, then pick a time.',
+                  'past': 'No completed session yet.',
+                  'cancelled': 'Nothing cancelled. Good sign.'}.get(tab, ''),
+                 url_for('exchange.index') if tab == 'upcoming' else '', 'Open requests') }}
+          </div>
+
+        {% elif view == 'cards' %}
+          <div class="panel-body d-grid gap-3">
+            {% for s in rows %}
+              <article class="panel p-3 hover-lift">
+                <div class="d-flex gap-3">
+                  <div class="text-center flex-shrink-0" style="width:56px">
+                    <div class="small-label mb-0">{{ s.session_date|month }}</div>
+                    <div style="font-family:'Plus Jakarta Sans';font-weight:800;font-size:1.6rem;color:var(--brand-700);line-height:1">
+                      {{ s.session_date|day }}</div>
+                    <div class="small text-muted-2" style="font-size:11px">{{ s.session_date|year }}</div>
+                  </div>
+
+                  <div class="flex-grow-1 min-w-0">
+                    <div class="d-flex flex-wrap justify-content-between gap-2">
+                      <div class="min-w-0">
+                        <div class="fw-semibold">{{ s.i_teach }}
+                          <span class="text-muted-2 fw-normal">&harr;</span> {{ s.i_learn }}</div>
+                        <div class="small text-muted-2">with
+                          <a href="{{ url_for('profile.view', user_id=s.p_id) }}"
+                             class="text-reset fw-semibold">{{ s.p_name }}</a>
+                          &middot; {{ s.p_dept }}</div>
+                      </div>
+                      <div class="d-flex gap-1 align-items-start">{{ m.mode_pill(s.mode) }}{{ m.pill(s.status) }}</div>
+                    </div>
+
+                    <div class="small text-muted-2 mt-2 d-flex flex-wrap gap-3">
+                      <span><i class="bi bi-clock me-1"></i>{{ s.session_time|fmt_time }}
+                        &middot; {{ s.duration }} min</span>
+                      <span><i class="bi bi-{{ 'camera-video' if s.mode == 'Online' else 'geo-alt' }} me-1"></i>
+                        {% if s.mode == 'Online' %}
+                          <a href="{{ s.meeting_link }}" target="_blank" rel="noopener">{{ s.meeting_link }}</a>
+                        {% else %}{{ s.location }}{% endif %}</span>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                      {% if s.status == 'Scheduled' %}
+                        <form method="post" action="{{ url_for('sessions.complete', session_id=s.session_id) }}">
+                          <button class="btn btn-sm btn-brand"><i class="bi bi-check-lg me-1"></i>Mark completed</button>
+                        </form>
+                        <button class="btn btn-sm btn-quiet" type="button"
+                                data-reschedule="{{ url_for('sessions.reschedule', session_id=s.session_id) }}"
+                                data-date="{{ s.session_date }}" data-time="{{ s.time_str }}">
+                          <i class="bi bi-pencil me-1"></i>Reschedule</button>
+                        <form method="post" action="{{ url_for('sessions.cancel', session_id=s.session_id) }}"
+                              data-confirm="Cancel this session?">
+                          <button class="btn btn-sm btn-quiet"><i class="bi bi-x-lg me-1"></i>Cancel</button>
+                        </form>
+
+                      {% elif s.status == 'Completed' %}
+                        {% if s.reviewed %}
+                          <span class="small text-muted-2 align-self-center">
+                            <i class="bi bi-check2-circle me-1" style="color:var(--ok)"></i>You reviewed this session</span>
+                        {% else %}
+                          <a class="btn btn-sm btn-brand"
+                             href="{{ url_for('reviews.index', session=s.session_id) }}">
+                            <i class="bi bi-star me-1"></i>Leave a review</a>
+                        {% endif %}
+
+                      {% else %}
+                        <span class="small text-muted-2 align-self-center">This session was cancelled.</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+
+        {% else %}
+          <div class="table-responsive"><table class="table table-clean">
+            <thead><tr><th>Date</th><th>Time</th><th>Partner</th><th>Skill</th>
+              <th>Mode</th><th>Where</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for s in rows %}
+                <tr>
+                  <td class="fw-semibold">{{ s.session_date|fmt_date }}</td>
+                  <td>{{ s.session_time|fmt_time }}<div class="small text-muted-2">{{ s.duration }} min</div></td>
+                  <td><a href="{{ url_for('profile.view', user_id=s.p_id) }}"
+                         class="text-reset fw-semibold">{{ s.p_name }}</a></td>
+                  <td>{{ s.i_teach }}</td>
+                  <td>{{ m.mode_pill(s.mode) }}</td>
+                  <td class="text-muted-2 small" style="max-width:220px">
+                    {{ s.meeting_link if s.mode == 'Online' else s.location }}</td>
+                  <td>{{ m.pill(s.status) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody></table></div>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</main>
+
+<!-- ===================== schedule modal ===================== -->
+<div class="modal fade" id="bookModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:var(--r-lg)">
+      <div class="modal-header">
+        <h5 class="modal-title">Schedule a session</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{{ url_for('sessions.book') }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="bReq">Accepted exchange</label>
+            <select class="form-select" id="bReq" name="request_id" required>
+              {% for b in bookable %}
+                <option value="{{ b.request_id }}" {{ 'selected' if preset == b.request_id|string }}>
+                  #{{ b.request_id }} &mdash; with {{ b.p_name }}
+                  ({{ b.teach_name }} &harr; {{ b.learn_name }})</option>
+              {% else %}
+                <option value="">You have no accepted request to book</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Only accepted requests can be booked &mdash;
+              <code>sessions.request_id</code> is a foreign key.</div>
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label" for="bDate">Date</label>
+              <input type="date" class="form-control" id="bDate" name="date"
+                     min="{{ today }}" value="{{ today }}" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="bTime">Start time</label>
+              <input type="time" class="form-control" id="bTime" name="time" value="16:00" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="bDur">Duration (minutes)</label>
+              <select class="form-select" id="bDur" name="duration">
+                <option>30</option><option>45</option><option selected>60</option>
+                <option>90</option><option>120</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="bMode">Mode</label>
+              <select class="form-select" id="bMode" name="mode">
+                <option>Online</option><option>Offline</option>
+              </select>
+            </div>
+            <div class="col-12" id="linkWrap">
+              <label class="form-label" for="bLink">Meeting link</label>
+              <input class="form-control" id="bLink" name="link"
+                     placeholder="https://meet.google.com/...">
+            </div>
+            <div class="col-12 d-none" id="locWrap">
+              <label class="form-label" for="bLoc">Place on campus</label>
+              <input class="form-control" id="bLoc" name="location" list="spots"
+                     placeholder="e.g. NSU Library, 2nd Floor">
+              <datalist id="spots">
+                <option value="NSU Library, 2nd Floor Group Study Room">
+                <option value="NSU Cafeteria, Corner Table">
+                <option value="SAC Building, Room 402">
+                <option value="NAC Building, Lab 501">
+                <option value="NAC 9th Floor Lounge">
+              </datalist>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-quiet btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-brand btn-sm">Book the session</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== reschedule modal ===================== -->
+<div class="modal fade" id="reschedModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:var(--r-lg)">
+      <div class="modal-header">
+        <h5 class="modal-title">Move this session</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" id="reschedForm">
+        <div class="modal-body row g-3">
+          <div class="col-6">
+            <label class="form-label" for="rsDate">New date</label>
+            <input type="date" class="form-control" id="rsDate" name="date" min="{{ today }}" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="rsTime">New time</label>
+            <input type="time" class="form-control" id="rsTime" name="time" required>
+          </div>
+          <div class="col-12 small text-muted-2">
+            UNIQUE (request_id, session_date, session_time) stops two sessions
+            landing on the same slot for one exchange.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-quiet btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-brand btn-sm">Save new time</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

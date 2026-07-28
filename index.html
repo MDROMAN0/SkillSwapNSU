@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkillSwap NSU &mdash; Trade skills with your classmates</title>
+<meta name="description" content="SkillSwap NSU lets North South University students teach what they know and learn what they want, with no money changing hands. CSE311L Database Systems Lab project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="static/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- ============================= top bar ============================= -->
+<nav class="topbar">
+  <div class="container d-flex align-items-center gap-3 py-2">
+    <a class="brand-mark" href="index.html">
+      <span class="brand-glyph"><i class="bi bi-arrow-left-right"></i></span>
+      SkillSwap <span class="brand-tag">NSU</span>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <a href="#how" class="btn btn-sm btn-quiet d-none d-sm-inline-flex">How it works</a>
+      <a href="login.html" class="btn btn-sm btn-outline-brand">Sign in</a>
+      <a href="register.html" class="btn btn-sm btn-brand">Create account</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================== hero ============================== -->
+<header class="hero">
+  <div class="container py-5">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="hero-eyebrow"><i class="bi bi-mortarboard-fill"></i>
+          North South University &middot; CSE311L</span>
+
+        <h1 class="mt-3">Teach one skill.<br>
+          <span class="hero-underline">Learn another.</span><br>
+          Pay nothing.</h1>
+
+        <p class="lead mt-3">SkillSwap NSU matches students who want each other's
+          skills. You list what you can teach and what you want to learn, the
+          platform finds the two-way match, and you book a session on campus or
+          online.</p>
+
+        <div class="d-flex flex-wrap gap-2 mt-4">
+          <a href="dashboard.html" class="btn btn-brand btn-pill px-4">
+            <i class="bi bi-play-circle me-1"></i>Open the demo</a>
+          <a href="register.html" class="btn btn-quiet btn-pill px-4">Create an account</a>
+        </div>
+
+        <p class="small text-muted-2 mt-3 mb-0">
+          <i class="bi bi-info-circle me-1"></i>The demo signs you in as a seeded
+          student so you can browse every screen.</p>
+      </div>
+
+      <!-- signature element: a real match, pulled from the seeded data -->
+      <div class="col-lg-6">
+        <div class="panel p-3 p-sm-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="small-label">A match from the live data</span>
+            <span class="pill pill-accepted"><i class="bi bi-check-circle"></i>Both sides agreed</span>
+          </div>
+          <div id="heroMatch"></div>
+          <p class="small text-muted-2 mt-3 mb-0" id="heroMatchNote"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============================== stats ============================== -->
+<section class="py-4 bg-white border-bottom" style="border-color:var(--line)!important">
+  <div class="container">
+    <div class="row g-3" id="statRow"></div>
+  </div>
+</section>
+
+<!-- ============================ how it works ============================ -->
+<section id="how" class="py-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <span class="small-label">The exchange</span>
+        <h2 class="mt-1" style="font-size:1.7rem">Four steps, no payment</h2>
+        <p class="text-muted-2">Every exchange follows the same path, which is why
+          the request status is a single column in the database with five possible
+          values: Pending, Accepted, Rejected, Cancelled and Completed.</p>
+        <a href="search.html" class="btn btn-outline-brand btn-sm">Browse students</a>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="panel h-100 p-3 hover-lift">
+              <div class="d-flex gap-2 align-items-center mb-2">
+                <span class="step-num">1</span>
+                <h3 class="mb-0" style="font-size:.98rem">List your skills</h3>
+              </div>
+              <p class="small text-muted-2 mb-0">Mark each skill as something you
+                can teach or something you want to learn, and set your level from
+                Beginner to Expert.</p>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="panel h-100 p-3 hover-lift">
+              <div class="d-flex gap-2 align-items-center mb-2">
+                <span class="step-num">2</span>
+                <h3 class="mb-0" style="font-size:.98rem">Send a request</h3>
+              </div>
+              <p class="small text-muted-2 mb-0">Filter by skill, department or
+                level, then offer a trade. Your partner sees exactly what each
+                side gives and gets.</p>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="panel h-100 p-3 hover-lift">
+              <div class="d-flex gap-2 align-items-center mb-2">
+                <span class="step-num">3</span>
+                <h3 class="mb-0" style="font-size:.98rem">Book the session</h3>
+              </div>
+              <p class="small text-muted-2 mb-0">Pick a date, time and duration.
+                Online sessions carry a meeting link, offline sessions carry a
+                spot on campus.</p>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="panel h-100 p-3 hover-lift">
+              <div class="d-flex gap-2 align-items-center mb-2">
+                <span class="step-num">4</span>
+                <h3 class="mb-0" style="font-size:.98rem">Review each other</h3>
+              </div>
+              <p class="small text-muted-2 mb-0">After a completed session both
+                partners can leave one rating out of five, which builds each
+                student's average score.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== skills on offer =========================== -->
+<section class="py-5 bg-white border-top border-bottom" style="border-color:var(--line)!important">
+  <div class="container">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+      <div>
+        <span class="small-label">Most requested right now</span>
+        <h2 class="mt-1 mb-0" style="font-size:1.5rem">What students want to learn</h2>
+      </div>
+      <a href="search.html" class="btn btn-sm btn-quiet">See all 50 skills</a>
+    </div>
+    <div id="demandGrid" class="row g-3"></div>
+
+    <hr class="my-4" style="border-color:var(--line)">
+
+    <span class="small-label">Departments taking part</span>
+    <div class="d-flex flex-wrap gap-2 mt-2" id="deptChips"></div>
+  </div>
+</section>
+
+<!-- ============================ about the build ============================ -->
+<section class="py-5">
+  <div class="container">
+    <div class="row g-4 align-items-start">
+      <div class="col-lg-5">
+        <span class="small-label">About this submission</span>
+        <h2 class="mt-1" style="font-size:1.5rem">Built for CSE311L</h2>
+        <p class="text-muted-2">SkillSwap NSU is a Database Systems Lab project.
+          The database is six normalised tables in MySQL with primary keys,
+          foreign keys, unique constraints, CHECK constraints and indexes, driven
+          by raw parameterised SQL &mdash; no ORM anywhere.</p>
+        <p class="text-muted-2 mb-0"><strong>About this page:</strong> GitHub Pages
+          can only serve static files, so this deployment reads the seeded rows
+          from a JavaScript export of <code>seed.sql</code>. The same markup runs
+          on Flask against MySQL for the final review, which is where the write
+          operations live.</p>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="panel h-100">
+              <div class="panel-head"><h3><i class="bi bi-hdd-stack me-2"></i>Database</h3></div>
+              <div class="panel-body tight">
+                <table class="table table-sm table-borderless small mb-0" id="tableStats"></table>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="panel h-100">
+              <div class="panel-head"><h3><i class="bi bi-braces me-2"></i>Stack</h3></div>
+              <div class="panel-body tight">
+                <ul class="list-unstyled small mb-0 d-grid gap-1">
+                  <li><i class="bi bi-check2 me-2" style="color:var(--brand)"></i>Python 3 + Flask (Blueprints)</li>
+                  <li><i class="bi bi-check2 me-2" style="color:var(--brand)"></i>MySQL on XAMPP</li>
+                  <li><i class="bi bi-check2 me-2" style="color:var(--brand)"></i>mysql-connector-python, raw SQL</li>
+                  <li><i class="bi bi-check2 me-2" style="color:var(--brand)"></i>Werkzeug password hashing</li>
+                  <li><i class="bi bi-check2 me-2" style="color:var(--brand)"></i>HTML5, CSS3, Bootstrap 5.3</li>
+                  <li><i class="bi bi-check2 me-2" style="color:var(--brand)"></i>Vanilla JavaScript</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer py-4">
+  <div class="container d-flex flex-wrap justify-content-between gap-2">
+    <span>SkillSwap NSU &middot; CSE311L Database Systems Lab &middot;
+      North South University</span>
+    <span>&copy; <span data-year></span> Project team</span>
+  </div>
+</footer>
+
+<script src="static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="static/js/data.js"></script>
+<script src="static/js/ui.js"></script>
+<script>
+/* ---------- hero: show one real accepted exchange ---------- */
+(function () {
+  const req = REQUESTS.find(r => r.status === 'Completed') || REQUESTS[0];
+  const a = userById(req.sender_id), b = userById(req.receiver_id);
+  const give = skillById(req.teach_skill), take = skillById(req.learn_skill);
+
+  $('#heroMatch').innerHTML = swapCard(
+    a.name + ' teaches', give.skill_name,
+    `${esc(a.department)} &middot; ${esc(give.category)}`,
+    b.name + ' teaches', take.skill_name,
+    `${esc(b.department)} &middot; ${esc(take.category)}`
+  );
+
+  const ses = SESSIONS.filter(s => s.request_id === req.request_id);
+  const revs = REVIEWS.filter(r => ses.some(s => s.session_id === r.session_id));
+  const avg = revs.length
+    ? (revs.reduce((t, r) => t + r.rating, 0) / revs.length).toFixed(1) : null;
+
+  $('#heroMatchNote').innerHTML =
+    `Request #${req.request_id} opened ${fmtDate(req.created)} &middot; ` +
+    `${ses.length} session${ses.length === 1 ? '' : 's'} held` +
+    (avg ? ` &middot; rated ${avg} out of 5` : '');
+})();
+
+/* ---------- platform statistics ---------- */
+(function () {
+  const completed = REQUESTS.filter(r => r.status === 'Completed').length;
+  const minutes = SESSIONS.filter(s => s.status === 'Completed')
+                          .reduce((t, s) => t + s.duration, 0);
+  const avgRating = REVIEWS.length
+    ? (REVIEWS.reduce((t, r) => t + r.rating, 0) / REVIEWS.length).toFixed(2) : '—';
+
+  const tiles = [
+    [USERS.length, 'Students registered'],
+    [SKILLS.length, 'Skills in the catalogue'],
+    [completed, 'Exchanges completed'],
+    [Math.round(minutes / 60) + ' hrs', 'Teaching time logged'],
+    [avgRating, 'Average partner rating']
+  ];
+
+  $('#statRow').innerHTML = tiles.map(([n, l]) => `
+    <div class="col-6 col-md">
+      <div class="stat">
+        <div class="stat-num">${n}</div>
+        <div class="stat-label">${l}</div>
+      </div>
+    </div>`).join('');
+})();
+
+/* ---------- most demanded skills ---------- */
+(function () {
+  const demand = {};
+  USERSKILLS.filter(us => us.skill_type === 'Learn').forEach(us => {
+    demand[us.skill_id] = (demand[us.skill_id] || 0) + 1;
+  });
+
+  const top = Object.entries(demand)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([sid, learners]) => {
+      const s = skillById(sid);
+      const teachers = USERSKILLS.filter(
+        us => us.skill_id === Number(sid) && us.skill_type === 'Teach').length;
+      return { s, learners, teachers };
+    });
+
+  $('#demandGrid').innerHTML = top.map(({ s, learners, teachers }) => `
+    <div class="col-sm-6 col-lg-4">
+      <a class="panel h-100 p-3 d-block hover-lift text-reset text-decoration-none"
+         href="search.html?skill=${encodeURIComponent(s.skill_name)}">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <h3 class="mb-0" style="font-size:1rem">${esc(s.skill_name)}</h3>
+          <span class="pill pill-online">${esc(s.category)}</span>
+        </div>
+        <p class="small text-muted-2 mt-2 mb-3">${esc(s.description)}</p>
+        <div class="d-flex gap-3 small">
+          <span><strong>${teachers}</strong> can teach</span>
+          <span class="text-muted-2"><strong>${learners}</strong> want to learn</span>
+        </div>
+      </a>
+    </div>`).join('');
+})();
+
+/* ---------- departments ---------- */
+(function () {
+  const counts = {};
+  USERS.forEach(u => counts[u.department] = (counts[u.department] || 0) + 1);
+  $('#deptChips').innerHTML = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([d, n]) => `<a class="chip" href="search.html?department=${encodeURIComponent(d)}">
+        ${esc(d)} <span class="lvl">${n}</span></a>`).join('');
+})();
+
+/* ---------- row counts per table ---------- */
+(function () {
+  const rows = [
+    ['users', USERS.length], ['skills', SKILLS.length],
+    ['userskills', USERSKILLS.length], ['exchangerequests', REQUESTS.length],
+    ['sessions', SESSIONS.length], ['reviews', REVIEWS.length]
+  ];
+  $('#tableStats').innerHTML = rows.map(([t, n]) => `
+    <tr><td class="ps-0"><code>${t}</code></td>
+        <td class="text-end pe-0 fw-semibold">${n} rows</td></tr>`).join('');
+})();
+
+$$('[data-year]').forEach(el => el.textContent = new Date().getFullYear());
+</script>
+</body>
+</html>

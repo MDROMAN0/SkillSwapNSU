@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit profile &mdash; SkillSwap NSU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="shellNav"></div>
+
+<main class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-3"><div class="rail-sticky" id="shellRail"></div></div>
+
+    <div class="col-lg-9">
+      <div class="mb-3">
+        <h1 style="font-size:1.4rem;margin-bottom:2px">Edit profile</h1>
+        <p class="text-muted-2 small mb-0">Your skills decide who the platform
+          matches you with, so keep both lists current.</p>
+      </div>
+
+      <!-- ------------------ details ------------------ -->
+      <section class="panel">
+        <div class="panel-head"><h2><i class="bi bi-person-vcard me-2" style="color:var(--brand)"></i>Your details</h2></div>
+        <div class="panel-body">
+          <form id="detailsForm" novalidate>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-4 pb-3 border-bottom"
+                 style="border-color:var(--line)!important">
+              <span id="avatarSlot"></span>
+              <div>
+                <div class="small-label">Profile picture</div>
+                <div class="d-flex gap-2 mt-1">
+                  <label class="btn btn-sm btn-outline-brand mb-0">
+                    <i class="bi bi-upload me-1"></i>Upload
+                    <input type="file" id="pic" accept="image/*" hidden>
+                  </label>
+                  <button type="button" class="btn btn-sm btn-quiet"
+                    onclick="demoAction('The Flask build saves the file to /uploads and stores the filename in users.profile_picture.')">
+                    Remove</button>
+                </div>
+                <div class="form-text">JPG or PNG, up to 2 MB.</div>
+              </div>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label class="form-label" for="name">Full name</label>
+                <input class="form-control" id="name" required>
+                <div class="invalid-feedback d-block small" data-err="name"></div>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="dept">Department</label>
+                <select class="form-select" id="dept"></select>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="email">Email address</label>
+                <input class="form-control" id="email" readonly>
+                <div class="form-text">Your email is your login and cannot be changed here.</div>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="bio">Bio</label>
+                <textarea class="form-control" id="bio" rows="3" maxlength="255"></textarea>
+                <div class="form-text"><span id="bioCount">0</span> / 255 characters</div>
+              </div>
+              <div class="col-12">
+                <button class="btn btn-brand btn-sm" type="submit">Save changes</button>
+                <a class="btn btn-quiet btn-sm" href="profile.html?id=1">Cancel</a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ------------------ skills ------------------ -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2><i class="bi bi-list-check me-2" style="color:var(--brand)"></i>Your skills</h2>
+          <span class="small text-muted-2" id="skillCount"></span>
+        </div>
+
+        <div class="panel-body">
+          <div class="row g-3 align-items-end mb-3 pb-3 border-bottom"
+               style="border-color:var(--line)!important">
+            <div class="col-sm-5">
+              <label class="form-label" for="newSkill">Add a skill</label>
+              <select class="form-select form-select-sm" id="newSkill"></select>
+            </div>
+            <div class="col-sm-3">
+              <label class="form-label" for="newType">I want to</label>
+              <select class="form-select form-select-sm" id="newType">
+                <option value="Teach">Teach it</option>
+                <option value="Learn">Learn it</option>
+              </select>
+            </div>
+            <div class="col-sm-2">
+              <label class="form-label" for="newLevel">Level</label>
+              <select class="form-select form-select-sm" id="newLevel">
+                <option>Beginner</option><option>Intermediate</option>
+                <option selected>Advanced</option><option>Expert</option>
+              </select>
+            </div>
+            <div class="col-sm-2 d-grid">
+              <button class="btn btn-brand btn-sm" id="addSkill" type="button">Add</button>
+            </div>
+            <div class="col-12"><div class="small text-danger" id="skillErr"></div></div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-clean" id="skillTable"></table>
+        </div>
+      </section>
+
+      <!-- ------------------ password ------------------ -->
+      <section class="panel">
+        <div class="panel-head"><h2><i class="bi bi-key me-2" style="color:var(--brand)"></i>Change password</h2></div>
+        <div class="panel-body">
+          <form id="pwForm" class="row g-3" novalidate>
+            <div class="col-sm-4">
+              <label class="form-label" for="oldPw">Current password</label>
+              <input type="password" class="form-control" id="oldPw" required>
+              <div class="invalid-feedback d-block small" data-err="oldPw"></div>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label" for="newPw">New password</label>
+              <input type="password" class="form-control" id="newPw" required>
+              <div class="invalid-feedback d-block small" data-err="newPw"></div>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label" for="newPw2">Confirm new password</label>
+              <input type="password" class="form-control" id="newPw2" required>
+              <div class="invalid-feedback d-block small" data-err="newPw2"></div>
+            </div>
+            <div class="col-12">
+              <button class="btn btn-brand btn-sm" type="submit">Update password</button>
+              <span class="small text-muted-2 ms-2">Stored as a Werkzeug pbkdf2 hash.</span>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer py-3 mt-4">
+  <div class="container small d-flex flex-wrap justify-content-between gap-2">
+    <span>SkillSwap NSU &middot; CSE311L Database Systems Lab</span>
+    <span>&copy; <span data-year></span></span>
+  </div>
+</footer>
+
+<script src="static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="static/js/data.js"></script>
+<script src="static/js/ui.js"></script>
+<script>
+bootPage('dashboard', 'edit');
+
+const U = me();
+
+/* ---------------- details form ---------------- */
+$('#avatarSlot').innerHTML = avatar(U, 88);
+$('#name').value  = U.name;
+$('#email').value = U.email;
+$('#bio').value   = U.bio;
+$('#bioCount').textContent = U.bio.length;
+$('#dept').innerHTML = DEPARTMENTS.map(d =>
+  `<option ${d === U.department ? 'selected' : ''}>${esc(d)}</option>`).join('');
+
+$('#bio').addEventListener('input', e => $('#bioCount').textContent = e.target.value.length);
+$('#pic').addEventListener('change', e => {
+  if (e.target.files[0]) demoAction('Selected ' + e.target.files[0].name
+    + '. The Flask build saves it to /uploads and updates users.profile_picture.');
+});
+
+$('#detailsForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('#name').value.trim();
+  if (name.length < 3) {
+    $('[data-err="name"]').textContent = 'Enter your full name.';
+    return;
+  }
+  $('[data-err="name"]').textContent = '';
+  demoAction('UPDATE users SET name = %s, department = %s, bio = %s WHERE user_id = '
+           + U.user_id);
+});
+
+/* ---------------- skills table ----------------
+   Rows come from userskills; adding one is an INSERT, removing one a DELETE.
+   The UNIQUE (user_id, skill_id, skill_type) constraint stops duplicates,
+   which is why the same check runs here before the request is sent.   */
+let myRows = USERSKILLS.filter(us => us.user_id === U.user_id)
+                       .map(us => ({ ...us }));
+
+$('#newSkill').innerHTML = CATEGORIES.map(cat => `
+  <optgroup label="${esc(cat)}">
+    ${SKILLS.filter(s => s.category === cat)
+            .map(s => `<option value="${s.skill_id}">${esc(s.skill_name)}</option>`).join('')}
+  </optgroup>`).join('');
+
+function renderSkills() {
+  const teachN = myRows.filter(r => r.skill_type === 'Teach').length;
+  const learnN = myRows.filter(r => r.skill_type === 'Learn').length;
+  $('#skillCount').textContent = `${teachN} teaching, ${learnN} learning`;
+
+  const sorted = [...myRows].sort((a, b) =>
+    a.skill_type.localeCompare(b.skill_type) ||
+    skillById(a.skill_id).skill_name.localeCompare(skillById(b.skill_id).skill_name));
+
+  if (!sorted.length) {
+    $('#skillTable').innerHTML =
+      `<tbody><tr><td>${empty('list-check', 'No skill listed yet. Add your first one above.')}</td></tr></tbody>`;
+    return;
+  }
+
+  $('#skillTable').innerHTML = `
+    <thead><tr><th>Skill</th><th>Category</th><th>Type</th><th>Level</th><th class="text-end">Action</th></tr></thead>
+    <tbody>${sorted.map(r => {
+      const s = skillById(r.skill_id);
+      return `<tr>
+        <td class="fw-semibold">${esc(s.skill_name)}</td>
+        <td class="text-muted-2">${esc(s.category)}</td>
+        <td><span class="pill ${r.skill_type === 'Teach' ? 'pill-online' : 'pill-pending'}">
+              <i class="bi bi-${r.skill_type === 'Teach' ? 'megaphone' : 'book'}"></i>
+              ${r.skill_type}</span></td>
+        <td>
+          <select class="form-select form-select-sm w-auto d-inline-block"
+                  onchange="changeLevel(${r.user_skill_id}, this.value)">
+            ${['Beginner', 'Intermediate', 'Advanced', 'Expert'].map(l =>
+              `<option ${l === r.proficiency ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+        </td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-quiet" onclick="removeSkill(${r.user_skill_id})">
+            <i class="bi bi-trash"></i><span class="visually-hidden">Remove</span></button>
+        </td></tr>`;
+    }).join('')}</tbody>`;
+}
+
+function changeLevel(id, level) {
+  const row = myRows.find(r => r.user_skill_id === id);
+  row.proficiency = level;
+  demoAction(`UPDATE userskills SET proficiency = '${level}' WHERE user_skill_id = ${id}`);
+}
+
+function removeSkill(id) {
+  myRows = myRows.filter(r => r.user_skill_id !== id);
+  renderSkills();
+  demoAction(`DELETE FROM userskills WHERE user_skill_id = ${id}`);
+}
+
+$('#addSkill').addEventListener('click', () => {
+  const sid = Number($('#newSkill').value);
+  const type = $('#newType').value;
+  const level = $('#newLevel').value;
+
+  if (myRows.some(r => r.skill_id === sid && r.skill_type === type)) {
+    $('#skillErr').textContent =
+      'That skill is already on your ' + type.toLowerCase() + ' list. '
+      + 'The UNIQUE constraint on userskills would reject it.';
+    return;
+  }
+  $('#skillErr').textContent = '';
+  myRows.push({ user_skill_id: 9000 + myRows.length, user_id: U.user_id,
+                skill_id: sid, skill_type: type, proficiency: level });
+  renderSkills();
+  demoAction(`INSERT INTO userskills (user_id, skill_id, skill_type, proficiency) `
+           + `VALUES (${U.user_id}, ${sid}, '${type}', '${level}')`);
+});
+
+renderSkills();
+
+/* ---------------- password form ---------------- */
+$('#pwForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const oldPw = $('#oldPw').value, a = $('#newPw').value, b = $('#newPw2').value;
+  let ok = true;
+  const set = (f, m) => { $(`[data-err="${f}"]`).textContent = m || ''; if (m) ok = false; };
+
+  set('oldPw', !oldPw ? 'Enter your current password.' : '');
+  set('newPw', a.length < 8 ? 'Use at least 8 characters.' : '');
+  set('newPw2', b !== a ? 'The two passwords do not match.' : '');
+  if (!ok) return;
+
+  if (oldPw !== 'password123') {
+    set('oldPw', 'That is not your current password.');
+    return;
+  }
+  demoAction('check_password_hash passed. The Flask build stores the new '
+           + 'generate_password_hash value in users.password.');
+});
+</script>
+</body>
+</html>

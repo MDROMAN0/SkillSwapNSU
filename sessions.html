@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sessions &mdash; SkillSwap NSU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="shellNav"></div>
+
+<main class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-3"><div class="rail-sticky" id="shellRail"></div></div>
+
+    <div class="col-lg-9">
+      <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+        <div>
+          <h1 style="font-size:1.4rem;margin-bottom:2px">Sessions</h1>
+          <p class="text-muted-2 small mb-0">A session belongs to one accepted request.
+            Online sessions carry a link, offline ones a spot on campus.</p>
+        </div>
+        <button class="btn btn-sm btn-brand" data-bs-toggle="modal" data-bs-target="#bookModal">
+          <i class="bi bi-calendar-plus me-1"></i>Schedule a session</button>
+      </div>
+
+      <div class="row g-2 mb-3" id="sessStats"></div>
+
+      <section class="panel">
+        <div class="panel-head flex-wrap">
+          <ul class="nav nav-pills" id="tabs">
+            <li class="nav-item"><button class="nav-link active btn-sm" data-tab="upcoming">Upcoming</button></li>
+            <li class="nav-item"><button class="nav-link btn-sm" data-tab="past">Completed</button></li>
+            <li class="nav-item"><button class="nav-link btn-sm" data-tab="cancelled">Cancelled</button></li>
+          </ul>
+          <div class="btn-group btn-group-sm" role="group" aria-label="View style">
+            <button class="btn btn-quiet active" data-view="cards">Cards</button>
+            <button class="btn btn-quiet" data-view="table">Table</button>
+          </div>
+        </div>
+        <div id="sessBody"></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<!-- ===================== schedule modal ===================== -->
+<div class="modal fade" id="bookModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:var(--r-lg)">
+      <div class="modal-header">
+        <h5 class="modal-title">Schedule a session</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="bookForm" novalidate>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="bReq">Accepted exchange</label>
+            <select class="form-select" id="bReq" required></select>
+            <div class="form-text">Only accepted requests can be booked &mdash;
+              <code>sessions.request_id</code> is a foreign key.</div>
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label" for="bDate">Date</label>
+              <input type="date" class="form-control" id="bDate" min="2026-07-28" required>
+              <div class="invalid-feedback d-block small" data-err="bDate"></div>
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="bTime">Start time</label>
+              <input type="time" class="form-control" id="bTime" value="16:00" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="bDur">Duration (minutes)</label>
+              <select class="form-select" id="bDur">
+                <option>30</option><option>45</option><option selected>60</option>
+                <option>90</option><option>120</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="bMode">Mode</label>
+              <select class="form-select" id="bMode">
+                <option>Online</option><option>Offline</option>
+              </select>
+            </div>
+            <div class="col-12" id="linkWrap">
+              <label class="form-label" for="bLink">Meeting link</label>
+              <input class="form-control" id="bLink" placeholder="https://meet.google.com/...">
+              <div class="invalid-feedback d-block small" data-err="bLink"></div>
+            </div>
+            <div class="col-12 d-none" id="locWrap">
+              <label class="form-label" for="bLoc">Place on campus</label>
+              <input class="form-control" id="bLoc" list="spots" placeholder="e.g. NSU Library, 2nd Floor">
+              <datalist id="spots">
+                <option value="NSU Library, 2nd Floor Group Study Room">
+                <option value="NSU Cafeteria, Corner Table">
+                <option value="SAC Building, Room 402">
+                <option value="NAC Building, Lab 501">
+                <option value="NAC 9th Floor Lounge">
+              </datalist>
+              <div class="invalid-feedback d-block small" data-err="bLoc"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-quiet btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-brand btn-sm">Book the session</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer py-3 mt-4">
+  <div class="container small d-flex flex-wrap justify-content-between gap-2">
+    <span>SkillSwap NSU &middot; CSE311L Database Systems Lab</span>
+    <span>&copy; <span data-year></span></span>
+  </div>
+</footer>
+
+<script src="static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="static/js/data.js"></script>
+<script src="static/js/ui.js"></script>
+<script>
+bootPage('sessions');
+
+const U = me();
+const MY = sessionsOf(U.user_id).sort((a, b) =>
+  a.session_date.localeCompare(b.session_date) || a.session_time.localeCompare(b.session_time));
+
+let tab = 'upcoming', view = 'cards';
+
+/* ---------------- counters ---------------- */
+(function () {
+  const mins = MY.filter(s => s.status === 'Completed').reduce((t, s) => t + s.duration, 0);
+  const tiles = [
+    [MY.filter(s => s.status === 'Scheduled').length, 'Upcoming'],
+    [MY.filter(s => s.status === 'Completed').length, 'Completed'],
+    [Math.round(mins / 60 * 10) / 10 + ' hrs', 'Time exchanged'],
+    [MY.filter(s => s.mode === 'Online').length + ' / ' + MY.filter(s => s.mode === 'Offline').length,
+     'Online / Offline']
+  ];
+  $('#sessStats').innerHTML = tiles.map(([n, l]) => `
+    <div class="col-6 col-md-3"><div class="stat">
+      <div class="stat-num" style="font-size:1.25rem">${n}</div>
+      <div class="stat-label">${l}</div></div></div>`).join('');
+})();
+
+/* ---------------- list ---------------- */
+function rowsFor(t) {
+  if (t === 'upcoming')  return MY.filter(s => s.status === 'Scheduled');
+  if (t === 'past')      return MY.filter(s => s.status === 'Completed').reverse();
+  return MY.filter(s => s.status === 'Cancelled');
+}
+
+function sessionMeta(s) {
+  const req = requestOfSession(s);
+  const partner = partnerOf(s, U.user_id);
+  const iAmSender = req.sender_id === U.user_id;
+  return {
+    req, partner,
+    iTeach: skillById(iAmSender ? req.teach_skill : req.learn_skill),
+    iLearn: skillById(iAmSender ? req.learn_skill : req.teach_skill),
+    reviewed: REVIEWS.some(r => r.session_id === s.session_id && r.reviewer_id === U.user_id)
+  };
+}
+
+function cardsHTML(rows) {
+  return `<div class="panel-body d-grid gap-3">` + rows.map(s => {
+    const m = sessionMeta(s);
+    return `
+    <article class="panel p-3 hover-lift">
+      <div class="d-flex gap-3">
+        <div class="text-center flex-shrink-0" style="width:56px">
+          <div class="small-label mb-0">${fmtDate(s.session_date).split(' ')[1]}</div>
+          <div style="font-family:'Plus Jakarta Sans';font-weight:800;font-size:1.6rem;color:var(--brand-700);line-height:1">
+            ${Number(s.session_date.slice(8, 10))}</div>
+          <div class="small text-muted-2" style="font-size:11px">${s.session_date.slice(0, 4)}</div>
+        </div>
+
+        <div class="flex-grow-1 min-w-0">
+          <div class="d-flex flex-wrap justify-content-between gap-2">
+            <div class="min-w-0">
+              <div class="fw-semibold">${esc(m.iTeach.skill_name)}
+                <span class="text-muted-2 fw-normal">&harr;</span>
+                ${esc(m.iLearn.skill_name)}</div>
+              <div class="small text-muted-2">with
+                <a href="profile.html?id=${m.partner.user_id}" class="text-reset fw-semibold">${esc(m.partner.name)}</a>
+                &middot; ${esc(m.partner.department)}</div>
+            </div>
+            <div class="d-flex gap-1 align-items-start">${modePill(s.mode)}${pill(s.status)}</div>
+          </div>
+
+          <div class="small text-muted-2 mt-2 d-flex flex-wrap gap-3">
+            <span><i class="bi bi-clock me-1"></i>${fmtTime(s.session_time)} &middot; ${s.duration} min</span>
+            <span><i class="bi bi-${s.mode === 'Online' ? 'camera-video' : 'geo-alt'} me-1"></i>
+              ${s.mode === 'Online'
+                ? `<a href="${esc(s.meeting_link)}" onclick="event.preventDefault();demoAction('The meeting link opens in a new tab in the Flask build.')">${esc(s.meeting_link)}</a>`
+                : esc(s.location)}</span>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 mt-3">${actionsFor(s, m)}</div>
+        </div>
+      </div>
+    </article>`;
+  }).join('') + `</div>`;
+}
+
+function actionsFor(s, m) {
+  const b = (cls, icon, label, msg) =>
+    `<button class="btn btn-sm ${cls}" onclick="demoAction(${JSON.stringify(msg)})">
+       <i class="bi bi-${icon} me-1"></i>${label}</button>`;
+
+  if (s.status === 'Scheduled')
+    return b('btn-brand', 'check-lg', 'Mark completed',
+             `UPDATE sessions SET status = 'Completed' WHERE session_id = ${s.session_id}`)
+         + b('btn-quiet', 'pencil', 'Reschedule',
+             `UPDATE sessions SET session_date = %s, session_time = %s WHERE session_id = ${s.session_id}`)
+         + b('btn-quiet', 'x-lg', 'Cancel',
+             `UPDATE sessions SET status = 'Cancelled' WHERE session_id = ${s.session_id}`);
+
+  if (s.status === 'Completed')
+    return m.reviewed
+      ? `<span class="small text-muted-2 align-self-center">
+           <i class="bi bi-check2-circle me-1" style="color:var(--ok)"></i>You reviewed this session</span>`
+      : `<a class="btn btn-sm btn-brand" href="reviews.html?session=${s.session_id}">
+           <i class="bi bi-star me-1"></i>Leave a review</a>`;
+
+  return `<span class="small text-muted-2 align-self-center">This session was cancelled.</span>`;
+}
+
+function tableHTML(rows) {
+  return `<div class="table-responsive"><table class="table table-clean">
+    <thead><tr><th>Date</th><th>Time</th><th>Partner</th><th>Skill</th>
+      <th>Mode</th><th>Where</th><th>Status</th></tr></thead>
+    <tbody>${rows.map(s => {
+      const m = sessionMeta(s);
+      return `<tr>
+        <td class="fw-semibold">${fmtDate(s.session_date)}</td>
+        <td>${fmtTime(s.session_time)}<div class="small text-muted-2">${s.duration} min</div></td>
+        <td><a href="profile.html?id=${m.partner.user_id}" class="text-reset fw-semibold">${esc(m.partner.name)}</a></td>
+        <td>${esc(m.iTeach.skill_name)}</td>
+        <td>${modePill(s.mode)}</td>
+        <td class="text-muted-2 small" style="max-width:220px">
+          ${esc(s.mode === 'Online' ? s.meeting_link : s.location)}</td>
+        <td>${pill(s.status)}</td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+function render() {
+  const rows = rowsFor(tab);
+  if (!rows.length) {
+    const msg = { upcoming: 'Nothing booked. Accept a request first, then pick a time.',
+                  past: 'No completed session yet.',
+                  cancelled: 'Nothing cancelled. Good sign.' }[tab];
+    $('#sessBody').innerHTML = `<div class="panel-body">${empty('calendar-x', msg,
+      tab === 'upcoming' ? '<a class="btn btn-sm btn-brand" href="requests.html">Open requests</a>' : '')}</div>`;
+    return;
+  }
+  $('#sessBody').innerHTML = view === 'cards' ? cardsHTML(rows) : tableHTML(rows);
+}
+
+$$('#tabs .nav-link').forEach(btn => btn.addEventListener('click', () => {
+  tab = btn.dataset.tab;
+  $$('#tabs .nav-link').forEach(b => b.classList.toggle('active', b === btn));
+  render();
+}));
+$$('[data-view]').forEach(btn => btn.addEventListener('click', () => {
+  view = btn.dataset.view;
+  $$('[data-view]').forEach(b => b.classList.toggle('active', b === btn));
+  render();
+}));
+
+/* ---------------- booking modal ---------------- */
+(function () {
+  const accepted = requestsOf(U.user_id);
+  const options = [...accepted.sent, ...accepted.received]
+    .filter(r => r.status === 'Accepted')
+    .map(r => {
+      const partner = userById(r.sender_id === U.user_id ? r.receiver_id : r.sender_id);
+      return `<option value="${r.request_id}">#${r.request_id} &mdash; with ${esc(partner.name)}
+              (${esc(skillById(r.teach_skill).skill_name)} &harr; ${esc(skillById(r.learn_skill).skill_name)})</option>`;
+    });
+
+  $('#bReq').innerHTML = options.length ? options.join('')
+    : '<option value="">You have no accepted request to book</option>';
+
+  const preset = param('book');
+  if (preset) $('#bReq').value = preset;
+
+  $('#bMode').addEventListener('change', e => {
+    const online = e.target.value === 'Online';
+    $('#linkWrap').classList.toggle('d-none', !online);
+    $('#locWrap').classList.toggle('d-none', online);
+  });
+
+  $('#bookForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const online = $('#bMode').value === 'Online';
+    let ok = true;
+    const set = (f, m) => { $(`[data-err="${f}"]`).textContent = m || ''; if (m) ok = false; };
+
+    set('bDate', !$('#bDate').value ? 'Pick a date.'
+         : ($('#bDate').value < TODAY ? 'Choose today or a later date.' : ''));
+    set('bLink', online && !/^https?:\/\/.+/.test($('#bLink').value.trim())
+         ? 'Online sessions need a meeting link.' : '');
+    set('bLoc', !online && !$('#bLoc').value.trim()
+         ? 'Offline sessions need a place on campus.' : '');
+    if (!$('#bReq').value) { demoAction('Accept a request before booking a session.'); return; }
+    if (!ok) return;
+
+    bootstrap.Modal.getInstance($('#bookModal')).hide();
+    demoAction(`INSERT INTO sessions (request_id, session_date, session_time, duration, mode, `
+             + `${online ? 'meeting_link' : 'location'}) VALUES (${$('#bReq').value}, `
+             + `'${$('#bDate').value}', '${$('#bTime').value}', ${$('#bDur').value}, `
+             + `'${$('#bMode').value}', ...)`);
+  });
+})();
+
+render();
+</script>
+</body>
+</html>

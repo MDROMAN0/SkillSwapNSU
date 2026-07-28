@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Requests &mdash; SkillSwap NSU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="shellNav"></div>
+
+<main class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-3"><div class="rail-sticky" id="shellRail"></div></div>
+
+    <div class="col-lg-9">
+      <div class="mb-3">
+        <h1 style="font-size:1.4rem;margin-bottom:2px">Exchange requests</h1>
+        <p class="text-muted-2 small mb-0">Every request carries one status. Accepting
+          one is what unlocks session booking.</p>
+      </div>
+
+      <div class="row g-2 mb-3" id="statusStats"></div>
+
+      <section class="panel">
+        <div class="panel-head flex-wrap">
+          <ul class="nav nav-pills" id="dirTabs">
+            <li class="nav-item"><button class="nav-link active btn-sm" data-dir="received">Received</button></li>
+            <li class="nav-item"><button class="nav-link btn-sm" data-dir="sent">Sent</button></li>
+            <li class="nav-item"><button class="nav-link btn-sm" data-dir="all">All</button></li>
+          </ul>
+          <select class="form-select form-select-sm w-auto" id="statusFilter">
+            <option value="">Every status</option>
+            <option>Pending</option><option>Accepted</option><option>Completed</option>
+            <option>Rejected</option><option>Cancelled</option>
+          </select>
+        </div>
+        <div class="panel-body" id="reqList"></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer py-3 mt-4">
+  <div class="container small d-flex flex-wrap justify-content-between gap-2">
+    <span>SkillSwap NSU &middot; CSE311L Database Systems Lab</span>
+    <span>&copy; <span data-year></span></span>
+  </div>
+</footer>
+
+<script src="static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="static/js/data.js"></script>
+<script src="static/js/ui.js"></script>
+<script>
+bootPage('requests');
+
+const U = me();
+const R = requestsOf(U.user_id);
+const ALL = [...R.received.map(r => ({ ...r, dir: 'received' })),
+             ...R.sent.map(r => ({ ...r, dir: 'sent' }))]
+            .sort((a, b) => b.created.localeCompare(a.created));
+
+let dir = param('dir', 'received');
+let statusF = param('status', '');
+$('#statusFilter').value = statusF;
+$$('#dirTabs .nav-link').forEach(b => b.classList.toggle('active', b.dataset.dir === dir));
+
+/* ---------------- status counters ---------------- */
+(function () {
+  const order = ['Pending', 'Accepted', 'Completed', 'Rejected', 'Cancelled'];
+  $('#statusStats').innerHTML = order.map(st => {
+    const n = ALL.filter(r => r.status === st).length;
+    return `<div class="col-4 col-md">
+      <button class="stat w-100 text-start border-0 p-2 px-3" style="cursor:pointer"
+              onclick="setStatus('${st}')">
+        <div class="stat-num" style="font-size:1.25rem">${n}</div>
+        <div class="stat-label">${st}</div>
+      </button></div>`;
+  }).join('');
+})();
+
+function setStatus(st) {
+  statusF = (statusF === st) ? '' : st;
+  $('#statusFilter').value = statusF;
+  render();
+}
+
+/* ---------------- list ---------------- */
+function actionsFor(r) {
+  const btn = (cls, icon, label, sql) =>
+    `<button class="btn btn-sm ${cls}" onclick="demoAction(${JSON.stringify(sql)})">
+       <i class="bi bi-${icon} me-1"></i>${label}</button>`;
+
+  if (r.status === 'Pending' && r.dir === 'received')
+    return btn('btn-brand', 'check-lg', 'Accept',
+             `UPDATE exchangerequests SET status = 'Accepted' WHERE request_id = ${r.request_id}`)
+         + btn('btn-quiet', 'x-lg', 'Decline',
+             `UPDATE exchangerequests SET status = 'Rejected' WHERE request_id = ${r.request_id}`);
+
+  if (r.status === 'Pending' && r.dir === 'sent')
+    return `<span class="small text-muted-2 me-2 align-self-center">Waiting for a reply</span>`
+         + btn('btn-quiet', 'slash-circle', 'Cancel request',
+             `UPDATE exchangerequests SET status = 'Cancelled' WHERE request_id = ${r.request_id}`);
+
+  if (r.status === 'Accepted') {
+    const booked = SESSIONS.filter(s => s.request_id === r.request_id
+                                     && s.status !== 'Cancelled').length;
+    return (booked
+      ? `<a class="btn btn-sm btn-quiet" href="sessions.html">
+           <i class="bi bi-calendar-check me-1"></i>${booked} session${booked === 1 ? '' : 's'} booked</a>`
+      : `<a class="btn btn-sm btn-brand" href="sessions.html?book=${r.request_id}">
+           <i class="bi bi-calendar-plus me-1"></i>Schedule a session</a>`)
+      + btn('btn-quiet', 'slash-circle', 'Cancel',
+          `UPDATE exchangerequests SET status = 'Cancelled' WHERE request_id = ${r.request_id}`);
+  }
+
+  if (r.status === 'Completed')
+    return `<a class="btn btn-sm btn-quiet" href="reviews.html">
+              <i class="bi bi-star me-1"></i>Reviews</a>`;
+
+  return `<span class="small text-muted-2 align-self-center">No action available</span>`;
+}
+
+function render() {
+  let rows = ALL.filter(r => dir === 'all' || r.dir === dir);
+  if (statusF) rows = rows.filter(r => r.status === statusF);
+
+  if (!rows.length) {
+    $('#reqList').innerHTML = empty('inbox',
+      `No ${statusF ? statusF.toLowerCase() + ' ' : ''}request in this list.`,
+      '<a class="btn btn-sm btn-brand" href="search.html">Find a partner</a>');
+    return;
+  }
+
+  $('#reqList').innerHTML = rows.map((r, i) => {
+    const sent = r.dir === 'sent';
+    const partner = userById(sent ? r.receiver_id : r.sender_id);
+    const rate = ratingOf(partner.user_id);
+    /* teach_skill always belongs to the sender */
+    const iGive = skillById(sent ? r.teach_skill : r.learn_skill);
+    const iGet  = skillById(sent ? r.learn_skill : r.teach_skill);
+    const last = i === rows.length - 1;
+
+    return `
+    <article class="${last ? '' : 'mb-4 pb-4 border-bottom'}"
+             style="${last ? '' : 'border-color:var(--line)!important'}">
+      <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+        <div class="d-flex gap-2 align-items-center min-w-0">
+          ${avatar(partner, 40)}
+          <div class="lh-sm min-w-0">
+            <a href="profile.html?id=${partner.user_id}"
+               class="fw-semibold text-reset">${esc(partner.name)}</a>
+            <div class="small text-muted-2">${esc(partner.department)} &middot;
+              ${sent ? 'you sent this' : 'sent to you'} on ${fmtDate(r.created)}</div>
+          </div>
+        </div>
+        <div class="text-end">
+          ${pill(r.status)}
+          <div class="small text-muted-2 mt-1">
+            ${rate.count ? rate.avg + ' out of 5' : 'No rating yet'}</div>
+        </div>
+      </div>
+
+      ${swapCard('You teach', iGive.skill_name, esc(iGive.category),
+                 'You learn', iGet.skill_name, esc(iGet.category))}
+
+      <div class="d-flex flex-wrap gap-2 mt-2">${actionsFor(r)}</div>
+    </article>`;
+  }).join('');
+}
+
+$$('#dirTabs .nav-link').forEach(btn => btn.addEventListener('click', () => {
+  dir = btn.dataset.dir;
+  $$('#dirTabs .nav-link').forEach(b => b.classList.toggle('active', b === btn));
+  render();
+}));
+$('#statusFilter').addEventListener('change', e => { statusF = e.target.value; render(); });
+
+render();
+</script>
+</body>
+</html>

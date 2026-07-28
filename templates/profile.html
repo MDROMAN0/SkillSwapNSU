@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% set nav_active = 'search' %}
+{% set rail_active = 'profile' if is_me else 'search' %}
+{% block title %}{{ person.name }} &mdash; SkillSwap NSU{% endblock %}
+
+{% block body %}
+<main class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-8">
+
+      <!-- ---------------- header card ---------------- -->
+      <div class="panel overflow-hidden mb-3">
+        <div class="profile-card-cover" style="height:96px"></div>
+        <div class="px-3 px-sm-4 pb-3">
+          <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+            <div class="d-flex align-items-end gap-3" style="margin-top:-44px">
+              {{ m.avatar(person, 88) }}
+              <div class="pb-1">
+                <h1 style="font-size:1.5rem;margin-bottom:0">{{ person.name }}</h1>
+                <div class="text-muted-2">{{ person.department }} &middot; North South University</div>
+              </div>
+            </div>
+            <div class="d-flex gap-2 pb-1">
+              {% if is_me %}
+                <a class="btn btn-sm btn-brand" href="{{ url_for('profile.edit') }}">
+                  <i class="bi bi-pencil-square me-1"></i>Edit profile</a>
+              {% else %}
+                <a class="btn btn-sm btn-brand" href="#proposal">
+                  <i class="bi bi-send me-1"></i>Propose an exchange</a>
+                <a class="btn btn-sm btn-quiet" href="{{ url_for('search.search') }}">Back to search</a>
+              {% endif %}
+            </div>
+          </div>
+
+          <p class="mt-3 mb-3">{{ person.bio or '' }}</p>
+
+          <div class="d-flex flex-wrap gap-4 pt-3 border-top" style="border-color:var(--line)!important">
+            <div><div class="small-label">Rating</div>
+              <div class="d-flex align-items-center gap-1">{{ m.stars(rating.avg) }}
+                <span class="small text-muted-2">
+                  {% if rating.count %}{{ rating.avg }} ({{ rating.count }}){% else %}None yet{% endif %}</span>
+              </div></div>
+            <div><div class="small-label">Completed exchanges</div>
+              <div class="fw-semibold">{{ header.done }}</div></div>
+            <div><div class="small-label">Teaching time</div>
+              <div class="fw-semibold">{{ header.hours }} hours</div></div>
+            <div><div class="small-label">Member since</div>
+              <div class="fw-semibold">{{ person.created_at|fmt_date }}</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------------- skills ---------------- -->
+      <section class="panel">
+        <div class="panel-head"><h2><i class="bi bi-mortarboard me-2" style="color:var(--brand)"></i>Skills</h2></div>
+        <div class="panel-body">
+          <div class="small-label mb-2">Can teach ({{ teach|length }})</div>
+          {% if teach %}
+            <div class="d-flex flex-wrap gap-1">
+              {% for s in teach %}{{ m.skill_chip(s, 'Teach', s.skill_id in my_learn_ids and not is_me) }}{% endfor %}
+            </div>
+          {% else %}<p class="small text-muted-2 mb-0">Nothing listed yet.</p>{% endif %}
+
+          <hr style="border-color:var(--line)">
+
+          <div class="small-label mb-2">Wants to learn ({{ learn|length }})</div>
+          {% if learn %}
+            <div class="d-flex flex-wrap gap-1">
+              {% for s in learn %}{{ m.skill_chip(s, 'Learn', s.skill_id in my_teach_ids and not is_me) }}{% endfor %}
+            </div>
+          {% else %}<p class="small text-muted-2 mb-0">Nothing listed yet.</p>{% endif %}
+
+          {% if not is_me %}
+            <p class="small text-muted-2 mt-3 mb-0">
+              <i class="bi bi-check-circle-fill me-1" style="color:var(--ok)"></i>
+              marks a skill that lines up with your own profile.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- ---------------- reviews ---------------- -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2><i class="bi bi-chat-quote me-2" style="color:var(--brand)"></i>Reviews</h2>
+          <span class="small text-muted-2">
+            {% if rating.count %}{{ rating.avg }} out of 5 from {{ rating.count }}
+              review{{ '' if rating.count == 1 else 's' }}{% else %}No reviews yet{% endif %}</span>
+        </div>
+        <div class="panel-body">
+          {% if not reviews %}
+            {{ m.empty('chat-quote', 'Finish a session and your partner can leave the first review.'
+                                     if is_me else 'This student has not been reviewed yet.') }}
+          {% else %}
+            <div class="row g-3 mb-3 pb-3 border-bottom" style="border-color:var(--line)!important">
+              <div class="col-sm-4 text-center">
+                <div class="stat-num" style="font-size:2.4rem">{{ rating.avg }}</div>
+                {{ m.stars(rating.avg) }}
+                <div class="small text-muted-2 mt-1">{{ rating.count }}
+                  review{{ '' if rating.count == 1 else 's' }}</div>
+              </div>
+              <div class="col-sm-8">{{ m.spread_bars(spread) }}</div>
+            </div>
+
+            {% for r in reviews %}
+              <div class="d-flex gap-2 mb-3">
+                {{ m.av(r.user_id, r.name, 'default.png', 40) }}
+                <div class="min-w-0">
+                  <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <a href="{{ url_for('profile.view', user_id=r.user_id) }}"
+                       class="fw-semibold text-reset">{{ r.name }}</a>
+                    {{ m.stars(r.rating) }}
+                    <span class="small text-muted-2">{{ r.created_at|fmt_date }}</span>
+                  </div>
+                  <div class="small text-muted-2">
+                    {% if r.skill_name %}After a {{ r.skill_name }} session{% else %}After a session{% endif %}</div>
+                  <p class="mb-0 mt-1">{{ r.comment }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- ---------------- exchange history ---------------- -->
+      <section class="panel">
+        <div class="panel-head"><h2><i class="bi bi-clock-history me-2" style="color:var(--brand)"></i>Exchange history</h2></div>
+        {% if not history %}
+          <div class="panel-body">{{ m.empty('inbox', 'No exchange yet.') }}</div>
+        {% else %}
+          <div class="table-responsive"><table class="table table-clean">
+            <thead><tr><th>Partner</th><th>Taught</th><th>Learned</th><th>Status</th><th>Opened</th></tr></thead>
+            <tbody>
+              {% for h in history %}
+                <tr>
+                  <td><a href="{{ url_for('profile.view', user_id=h.p_id) }}"
+                         class="text-reset fw-semibold">{{ h.p_name }}</a>
+                      <div class="small text-muted-2">
+                        {{ 'Request sent' if h.sent else 'Request received' }}</div></td>
+                  <td>{{ h.gave }}</td>
+                  <td>{{ h.got }}</td>
+                  <td>{{ m.pill(h.status) }}</td>
+                  <td class="text-muted-2">{{ h.created_at|fmt_date }}</td>
+                </tr>
+              {% endfor %}
+            </tbody></table></div>
+        {% endif %}
+      </section>
+    </div>
+
+    <!-- ---------------- right column ---------------- -->
+    <div class="col-lg-4">
+      <div class="rail-sticky">
+        {% if is_me %}
+          {% include "_rail.html" %}
+        {% else %}
+          <section class="panel" id="proposal">
+            <div class="panel-head"><h3><i class="bi bi-send me-2"></i>Propose an exchange</h3></div>
+            <div class="panel-body">
+              {% if existing %}
+                <div class="alert alert-light border small mb-3">
+                  You already have a request with {{ person.name.split()[0] }} &mdash;
+                  currently {{ m.pill(existing.status) }}.
+                  <a href="{{ url_for('exchange.index', dir='all') }}">Open requests</a>
+                </div>
+              {% endif %}
+
+              {% if they_teach_i_want and they_want_i_teach %}
+                <div class="mb-3">
+                  {{ m.swap('You teach', they_want_i_teach[0].skill_name, 'On their learn list',
+                            'You learn', they_teach_i_want[0].skill_name,
+                            they_teach_i_want[0].proficiency ~ ' level') }}
+                </div>
+              {% else %}
+                <p class="small text-muted-2">There is no automatic two-way match here, but
+                  you can still propose any pair of skills.</p>
+              {% endif %}
+
+              <form method="post" action="{{ url_for('exchange.send') }}">
+                <input type="hidden" name="receiver_id" value="{{ person.user_id }}">
+                <input type="hidden" name="next" value="{{ url_for('profile.view', user_id=person.user_id) }}">
+                <div class="mb-2">
+                  <label class="form-label" for="giveSel">I will teach</label>
+                  <select class="form-select form-select-sm" id="giveSel" name="teach_skill" required>
+                    {% for s in my_teach %}
+                      <option value="{{ s.skill_id }}"
+                        {{ 'selected' if they_want_i_teach and they_want_i_teach[0].skill_id == s.skill_id }}>
+                        {{ s.skill_name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="takeSel">I want to learn</label>
+                  <select class="form-select form-select-sm" id="takeSel" name="learn_skill" required>
+                    {% for s in teach %}
+                      <option value="{{ s.skill_id }}"
+                        {{ 'selected' if they_teach_i_want and they_teach_i_want[0].skill_id == s.skill_id }}>
+                        {{ s.skill_name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <button class="btn btn-brand btn-sm w-100" type="submit">Send request</button>
+              </form>
+              <p class="small text-muted-2 mt-2 mb-0">They will see it under Requests and can
+                accept or decline.</p>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h3><i class="bi bi-people me-2"></i>Also in {{ person.department }}</h3></div>
+            <div class="panel-body tight py-2">
+              {% for p in peers %}
+                <a class="d-flex gap-2 align-items-center py-2 text-reset text-decoration-none"
+                   href="{{ url_for('profile.view', user_id=p.user_id) }}">
+                  {{ m.av(p.user_id, p.name, 'default.png', 32) }}
+                  <div class="lh-sm min-w-0 flex-grow-1">
+                    <div class="fw-semibold text-truncate" style="font-size:13px">{{ p.name }}</div>
+                    <div class="small text-muted-2" style="font-size:11.5px">
+                      {{ p.teach_n }} skills to teach</div>
+                  </div>
+                  {% if p.total_reviews %}
+                    <span class="small"><span class="rating-num">{{ p.avg_rating }}</span>
+                      <i class="bi bi-star-fill" style="color:var(--star);font-size:10px"></i></span>
+                  {% endif %}
+                </a>
+              {% else %}
+                <p class="small text-muted-2 mb-0 py-2">Nobody else from this department yet.</p>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}

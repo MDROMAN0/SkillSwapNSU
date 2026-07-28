@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reviews &mdash; SkillSwap NSU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="shellNav"></div>
+
+<main class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-3"><div class="rail-sticky" id="shellRail"></div></div>
+
+    <div class="col-lg-9">
+      <div class="mb-3">
+        <h1 style="font-size:1.4rem;margin-bottom:2px">Reviews</h1>
+        <p class="text-muted-2 small mb-0">A review can only be written after a
+          completed session, and each partner may write one per session.</p>
+      </div>
+
+      <!-- ---------- waiting to be written ---------- -->
+      <section class="panel" id="pendingPanel">
+        <div class="panel-head">
+          <h2><i class="bi bi-pencil-square me-2" style="color:var(--brand)"></i>Sessions you can review</h2>
+        </div>
+        <div class="panel-body" id="toReview"></div>
+      </section>
+
+      <!-- ---------- summary + lists ---------- -->
+      <section class="panel">
+        <div class="panel-head flex-wrap">
+          <ul class="nav nav-pills" id="tabs">
+            <li class="nav-item"><button class="nav-link active btn-sm" data-tab="received">About you</button></li>
+            <li class="nav-item"><button class="nav-link btn-sm" data-tab="given">Written by you</button></li>
+          </ul>
+          <span class="small text-muted-2" id="tabCount"></span>
+        </div>
+        <div class="panel-body" id="reviewBody"></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<!-- ===================== review modal ===================== -->
+<div class="modal fade" id="revModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:var(--r-lg)">
+      <div class="modal-header">
+        <h5 class="modal-title">Leave a review</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="revForm" novalidate>
+        <div class="modal-body">
+          <div id="revContext" class="mb-3"></div>
+
+          <label class="form-label d-block">Your rating</label>
+          <div class="star-input mb-1" id="starInput" role="radiogroup" aria-label="Rating out of five"></div>
+          <div class="small text-muted-2 mb-3" id="ratingHint">Pick a score from 1 to 5.</div>
+          <div class="invalid-feedback d-block small" data-err="rating"></div>
+
+          <label class="form-label" for="revText">Comment</label>
+          <textarea class="form-control" id="revText" rows="3" maxlength="200"
+            placeholder="What went well? What could have been better?"></textarea>
+          <div class="form-text"><span id="revCount">0</span> / 200 characters</div>
+          <div class="invalid-feedback d-block small" data-err="comment"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-quiet btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-brand btn-sm">Publish review</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer py-3 mt-4">
+  <div class="container small d-flex flex-wrap justify-content-between gap-2">
+    <span>SkillSwap NSU &middot; CSE311L Database Systems Lab</span>
+    <span>&copy; <span data-year></span></span>
+  </div>
+</footer>
+
+<script src="static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="static/js/data.js"></script>
+<script src="static/js/ui.js"></script>
+<script>
+bootPage('reviews');
+
+const U = me();
+const received = REVIEWS.filter(r => r.reviewee_id === U.user_id).reverse();
+const given    = REVIEWS.filter(r => r.reviewer_id === U.user_id).reverse();
+const myRate   = ratingOf(U.user_id);
+let tab = 'received';
+
+/* ---------------- sessions still waiting for my review ---------------- */
+(function () {
+  const open = sessionsOf(U.user_id)
+    .filter(s => s.status === 'Completed'
+              && !REVIEWS.some(r => r.session_id === s.session_id && r.reviewer_id === U.user_id));
+
+  if (!open.length) {
+    $('#toReview').innerHTML = empty('check2-circle',
+      'You have reviewed every completed session. Nothing pending.');
+    return;
+  }
+
+  $('#toReview').innerHTML = open.map(s => {
+    const p = partnerOf(s, U.user_id);
+    const req = requestOfSession(s);
+    const skill = skillById(req.sender_id === U.user_id ? req.learn_skill : req.teach_skill);
+    return `
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+      <div class="d-flex gap-2 align-items-center min-w-0">
+        ${avatar(p, 40)}
+        <div class="lh-sm min-w-0">
+          <div class="fw-semibold">${esc(p.name)}</div>
+          <div class="small text-muted-2">${esc(skill.skill_name)} &middot;
+            ${fmtDate(s.session_date)} &middot; ${s.duration} min</div>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-brand"
+              onclick="openReview(${s.session_id})">
+        <i class="bi bi-star me-1"></i>Rate ${esc(p.name.split(' ')[0])}</button>
+    </div>`;
+  }).join('');
+})();
+
+/* ---------------- summary + list ---------------- */
+function summaryHTML() {
+  if (!myRate.count) return '';
+  const spread = [5, 4, 3, 2, 1].map(n => ({ n, c: received.filter(r => r.rating === n).length }));
+  return `
+  <div class="row g-3 mb-3 pb-3 border-bottom" style="border-color:var(--line)!important">
+    <div class="col-sm-4 text-center">
+      <div class="stat-num" style="font-size:2.4rem">${myRate.avg}</div>
+      ${stars(myRate.avg)}
+      <div class="small text-muted-2 mt-1">${myRate.count} review${myRate.count === 1 ? '' : 's'}</div>
+    </div>
+    <div class="col-sm-8">
+      ${spread.map(s => `
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="small text-muted-2" style="width:12px">${s.n}</span>
+          <i class="bi bi-star-fill" style="color:var(--star);font-size:10px"></i>
+          <div class="progress flex-grow-1" style="height:6px">
+            <div class="progress-bar" style="width:${100 * s.c / received.length}%;background:var(--brand)"></div>
+          </div>
+          <span class="small text-muted-2" style="width:18px">${s.c}</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function cardHTML(r, mode) {
+  const other = userById(mode === 'received' ? r.reviewer_id : r.reviewee_id);
+  const ses = SESSIONS.find(s => s.session_id === r.session_id);
+  const req = ses ? requestOfSession(ses) : null;
+  const skill = req ? skillById(req.teach_skill) : null;
+  return `
+  <div class="d-flex gap-2 mb-3 pb-3 border-bottom" style="border-color:var(--line)!important">
+    ${avatar(other, 40)}
+    <div class="min-w-0 flex-grow-1">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <a href="profile.html?id=${other.user_id}" class="fw-semibold text-reset">${esc(other.name)}</a>
+        ${stars(r.rating)}
+        <span class="small text-muted-2">${fmtDate(r.created)}</span>
+      </div>
+      <div class="small text-muted-2">
+        ${mode === 'received' ? 'Reviewed you' : 'You reviewed them'}
+        ${skill ? ' after a ' + esc(skill.skill_name) + ' session' : ''}
+        &middot; session #${r.session_id}</div>
+      <p class="mb-0 mt-1">${esc(r.comment)}</p>
+    </div>
+    ${mode === 'given' ? `
+      <button class="btn btn-sm btn-quiet align-self-start"
+        onclick="demoAction('DELETE FROM reviews WHERE review_id = ${r.review_id}')">
+        <i class="bi bi-trash"></i><span class="visually-hidden">Delete</span></button>` : ''}
+  </div>`;
+}
+
+function render() {
+  const rows = tab === 'received' ? received : given;
+  $('#tabCount').textContent = `${rows.length} review${rows.length === 1 ? '' : 's'}`;
+
+  if (!rows.length) {
+    $('#reviewBody').innerHTML = empty('chat-quote',
+      tab === 'received'
+        ? 'Nobody has reviewed you yet. Finish a session and your partner can rate you.'
+        : 'You have not written a review yet.',
+      '<a class="btn btn-sm btn-brand" href="sessions.html">Open sessions</a>');
+    return;
+  }
+
+  $('#reviewBody').innerHTML =
+    (tab === 'received' ? summaryHTML() : '') + rows.map(r => cardHTML(r, tab)).join('');
+}
+
+$$('#tabs .nav-link').forEach(btn => btn.addEventListener('click', () => {
+  tab = btn.dataset.tab;
+  $$('#tabs .nav-link').forEach(b => b.classList.toggle('active', b === btn));
+  render();
+}));
+
+/* ---------------- review modal ---------------- */
+let rating = 0, currentSession = null;
+
+$('#starInput').innerHTML = [1, 2, 3, 4, 5]
+  .map(n => `<i class="bi bi-star-fill" data-star="${n}" role="radio"
+               aria-checked="false" tabindex="0" aria-label="${n} out of 5"></i>`).join('');
+
+const HINTS = { 1: 'Poor — it did not work out.', 2: 'Below expectations.',
+                3: 'Fine, but there is room to improve.', 4: 'Good session, would repeat.',
+                5: 'Excellent — clear, prepared and generous with time.' };
+
+function paintStars(n) {
+  $$('#starInput i').forEach(el =>
+    el.classList.toggle('on', Number(el.dataset.star) <= n));
+}
+
+$$('#starInput i').forEach(el => {
+  el.addEventListener('mouseenter', () => paintStars(Number(el.dataset.star)));
+  el.addEventListener('click', () => {
+    rating = Number(el.dataset.star);
+    paintStars(rating);
+    $('#ratingHint').textContent = HINTS[rating];
+    $('[data-err="rating"]').textContent = '';
+    $$('#starInput i').forEach(x =>
+      x.setAttribute('aria-checked', Number(x.dataset.star) === rating));
+  });
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+  });
+});
+$('#starInput').addEventListener('mouseleave', () => paintStars(rating));
+
+$('#revText').addEventListener('input', e => $('#revCount').textContent = e.target.value.length);
+
+function openReview(sessionId) {
+  currentSession = sessionId;
+  rating = 0; paintStars(0);
+  $('#revText').value = ''; $('#revCount').textContent = '0';
+  $('#ratingHint').textContent = 'Pick a score from 1 to 5.';
+  $('[data-err="rating"]').textContent = '';
+  $('[data-err="comment"]').textContent = '';
+
+  const s = SESSIONS.find(x => x.session_id === sessionId);
+  const p = partnerOf(s, U.user_id);
+  const req = requestOfSession(s);
+  const skill = skillById(req.sender_id === U.user_id ? req.learn_skill : req.teach_skill);
+
+  $('#revContext').innerHTML = `
+    <div class="d-flex gap-2 align-items-center panel p-2"
+         style="background:var(--brand-050);border-color:var(--brand-100)">
+      ${avatar(p, 40)}
+      <div class="lh-sm">
+        <div class="fw-semibold">${esc(p.name)}</div>
+        <div class="small text-muted-2">${esc(skill.skill_name)} &middot;
+          ${fmtDate(s.session_date)} &middot; ${s.duration} min &middot; ${s.mode}</div>
+      </div>
+    </div>`;
+
+  new bootstrap.Modal($('#revModal')).show();
+}
+
+$('#revForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const comment = $('#revText').value.trim();
+  let ok = true;
+  if (!rating) { $('[data-err="rating"]').textContent = 'Choose a rating first.'; ok = false; }
+  if (comment.length < 10) {
+    $('[data-err="comment"]').textContent = 'Write at least a short sentence.'; ok = false;
+  } else { $('[data-err="comment"]').textContent = ''; }
+  if (!ok) return;
+
+  const s = SESSIONS.find(x => x.session_id === currentSession);
+  const p = partnerOf(s, U.user_id);
+  bootstrap.Modal.getInstance($('#revModal')).hide();
+  demoAction(`INSERT INTO reviews (session_id, reviewer_id, reviewee_id, rating, comment) `
+           + `VALUES (${currentSession}, ${U.user_id}, ${p.user_id}, ${rating}, '...')`);
+});
+
+/* jump straight into the modal when arriving from sessions.html */
+const preset = param('session');
+if (preset) {
+  const s = SESSIONS.find(x => x.session_id === Number(preset));
+  if (s) setTimeout(() => openReview(s.session_id), 250);
+}
+
+render();
+</script>
+</body>
+</html>

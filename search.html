@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find a partner &mdash; SkillSwap NSU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="shellNav"></div>
+
+<main class="container py-4">
+  <div class="row g-4">
+
+    <!-- ---------------------- filters ---------------------- -->
+    <div class="col-lg-3">
+      <div class="rail-sticky">
+        <section class="panel">
+          <div class="panel-head">
+            <h2><i class="bi bi-funnel me-2" style="color:var(--brand)"></i>Filters</h2>
+            <button class="btn btn-sm btn-link p-0 text-decoration-none" id="clearBtn">Clear</button>
+          </div>
+          <div class="panel-body">
+            <div class="mb-3">
+              <label class="form-label" for="fName">Student name</label>
+              <input class="form-control form-control-sm" id="fName" placeholder="e.g. Rahman">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="fSkill">Skill</label>
+              <input class="form-control form-control-sm" id="fSkill" list="skillList"
+                     placeholder="e.g. Python">
+              <datalist id="skillList"></datalist>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="fCategory">Category</label>
+              <select class="form-select form-select-sm" id="fCategory">
+                <option value="">Any category</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="fDept">Department</label>
+              <select class="form-select form-select-sm" id="fDept">
+                <option value="">Any department</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="fLevel">Experience level</label>
+              <select class="form-select form-select-sm" id="fLevel">
+                <option value="">Any level</option>
+                <option>Beginner</option><option>Intermediate</option>
+                <option>Advanced</option><option>Expert</option>
+              </select>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="fMatch">
+              <label class="form-check-label small" for="fMatch">
+                Only two-way matches with me</label>
+            </div>
+            <button class="btn btn-brand btn-sm w-100" id="applyBtn">Apply filters</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h3><i class="bi bi-lightbulb me-2"></i>Tip</h3></div>
+          <div class="panel-body">
+            <p class="small text-muted-2 mb-0">A two-way match means they teach
+              something on your learn list and want something on your teach list.
+              Those requests get accepted far more often.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ---------------------- results ---------------------- -->
+    <div class="col-lg-9">
+      <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+        <div>
+          <h1 style="font-size:1.4rem;margin-bottom:2px">Find a partner</h1>
+          <p class="text-muted-2 mb-0 small" id="resultCount"></p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <label class="form-label mb-0" for="sortBy">Sort by</label>
+          <select class="form-select form-select-sm w-auto" id="sortBy">
+            <option value="match">Best match</option>
+            <option value="rating">Highest rated</option>
+            <option value="name">Name (A&ndash;Z)</option>
+            <option value="newest">Newest members</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="activeChips" class="d-flex flex-wrap gap-1 mb-3"></div>
+      <div id="results" class="d-grid gap-3"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer py-3 mt-4">
+  <div class="container small d-flex flex-wrap justify-content-between gap-2">
+    <span>SkillSwap NSU &middot; CSE311L Database Systems Lab</span>
+    <span>&copy; <span data-year></span></span>
+  </div>
+</footer>
+
+<script src="static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="static/js/data.js"></script>
+<script src="static/js/ui.js"></script>
+<script>
+bootPage('search');
+
+const U = me();
+const myTeachIds = new Set(skillsOf(U.user_id, 'Teach').map(s => s.skill_id));
+const myLearnIds = new Set(skillsOf(U.user_id, 'Learn').map(s => s.skill_id));
+
+/* ---------- fill the option lists from the catalogue ---------- */
+$('#skillList').innerHTML = SKILLS.map(s => `<option value="${esc(s.skill_name)}">`).join('');
+$('#fCategory').insertAdjacentHTML('beforeend',
+  CATEGORIES.map(c => `<option>${esc(c)}</option>`).join(''));
+$('#fDept').insertAdjacentHTML('beforeend',
+  DEPARTMENTS.map(d => `<option>${esc(d)}</option>`).join(''));
+
+/* ---------- seed the form from the URL ---------- */
+$('#fName').value     = param('q', '') || param('name', '');
+$('#fSkill').value    = param('skill', '');
+$('#fCategory').value = param('category', '');
+$('#fDept').value     = param('department', '');
+$('#fLevel').value    = param('level', '');
+$('#fMatch').checked  = param('match') === '1';
+
+/* ---------- the search itself ----------
+   SQL equivalent:
+     SELECT DISTINCT u.*, s.skill_name, us.proficiency
+     FROM users u
+     JOIN userskills us ON us.user_id = u.user_id AND us.skill_type = 'Teach'
+     JOIN skills s ON s.skill_id = us.skill_id
+     WHERE (%s = '' OR u.name LIKE %s)
+       AND (%s = '' OR s.skill_name LIKE %s)
+       AND (%s = '' OR s.category = %s)
+       AND (%s = '' OR u.department = %s)
+       AND (%s = '' OR us.proficiency = %s)
+   ---------------------------------------- */
+function runSearch() {
+  const fName  = $('#fName').value.trim().toLowerCase();
+  const fSkill = $('#fSkill').value.trim().toLowerCase();
+  const fCat   = $('#fCategory').value;
+  const fDept  = $('#fDept').value;
+  const fLevel = $('#fLevel').value;
+  const onlyMatch = $('#fMatch').checked;
+  const sortBy = $('#sortBy').value;
+
+  let rows = USERS.filter(u => u.user_id !== U.user_id).map(u => {
+    const teach = skillsOf(u.user_id, 'Teach');
+    const learn = skillsOf(u.user_id, 'Learn');
+    const theyTeachIWant = teach.filter(s => myLearnIds.has(s.skill_id));
+    const theyWantITeach = learn.filter(s => myTeachIds.has(s.skill_id));
+    return { u, teach, learn, theyTeachIWant, theyWantITeach,
+             rating: ratingOf(u.user_id) };
+  });
+
+  rows = rows.filter(r => {
+    if (fName && !r.u.name.toLowerCase().includes(fName)
+              && !r.u.department.toLowerCase().includes(fName)
+              && !r.teach.some(s => s.skill_name.toLowerCase().includes(fName))) return false;
+    if (fDept && r.u.department !== fDept) return false;
+
+    let pool = r.teach;
+    if (fSkill) pool = pool.filter(s => s.skill_name.toLowerCase().includes(fSkill));
+    if (fCat)   pool = pool.filter(s => s.category === fCat);
+    if (fLevel) pool = pool.filter(s => s.proficiency === fLevel);
+    if ((fSkill || fCat || fLevel) && !pool.length) return false;
+    r.hits = pool;
+
+    if (onlyMatch && !(r.theyTeachIWant.length && r.theyWantITeach.length)) return false;
+    return true;
+  });
+
+  rows.sort((a, b) => {
+    if (sortBy === 'rating') return (b.rating.avg || 0) - (a.rating.avg || 0);
+    if (sortBy === 'name')   return a.u.name.localeCompare(b.u.name);
+    if (sortBy === 'newest') return b.u.joined.localeCompare(a.u.joined);
+    const sa = a.theyTeachIWant.length + a.theyWantITeach.length;
+    const sb = b.theyTeachIWant.length + b.theyWantITeach.length;
+    return sb - sa || (b.rating.avg || 0) - (a.rating.avg || 0);
+  });
+
+  render(rows, { fName, fSkill, fCat, fDept, fLevel, onlyMatch });
+}
+
+function render(rows, f) {
+  $('#resultCount').textContent =
+    `${rows.length} student${rows.length === 1 ? '' : 's'} found out of ${USERS.length - 1}`;
+
+  const chips = [];
+  if (f.fName)  chips.push(['Name contains "' + f.fName + '"', 'fName']);
+  if (f.fSkill) chips.push(['Skill: ' + f.fSkill, 'fSkill']);
+  if (f.fCat)   chips.push(['Category: ' + f.fCat, 'fCategory']);
+  if (f.fDept)  chips.push(['Department: ' + f.fDept, 'fDept']);
+  if (f.fLevel) chips.push(['Level: ' + f.fLevel, 'fLevel']);
+  if (f.onlyMatch) chips.push(['Two-way matches only', 'fMatch']);
+
+  $('#activeChips').innerHTML = chips.map(([label, id]) => `
+    <button class="chip" onclick="dropFilter('${id}')">${esc(label)}
+      <i class="bi bi-x-lg" style="font-size:10px"></i></button>`).join('');
+
+  if (!rows.length) {
+    $('#results').innerHTML = empty('person-x',
+      'No student matches these filters. Try widening the skill or removing the department.',
+      '<button class="btn btn-sm btn-brand" onclick="clearAll()">Clear filters</button>');
+    return;
+  }
+
+  $('#results').innerHTML = rows.map(r => {
+    const matched = r.theyTeachIWant.length && r.theyWantITeach.length;
+    const highlight = (r.hits && r.hits.length ? r.hits : r.teach).slice(0, 4);
+    return `
+    <article class="panel p-3 hover-lift">
+      <div class="d-flex gap-3">
+        ${avatar(r.u, 48)}
+        <div class="flex-grow-1 min-w-0">
+          <div class="d-flex flex-wrap justify-content-between gap-2">
+            <div class="min-w-0">
+              <a href="profile.html?id=${r.u.user_id}"
+                 class="fw-semibold text-reset" style="font-size:1rem">${esc(r.u.name)}</a>
+              <div class="small text-muted-2">${esc(r.u.department)} &middot;
+                joined ${fmtDate(r.u.joined)}</div>
+            </div>
+            <div class="text-end">
+              ${stars(r.rating.avg)}
+              <div class="small text-muted-2" style="font-size:11.5px">
+                ${r.rating.count ? r.rating.avg + ' from ' + r.rating.count + ' review'
+                    + (r.rating.count === 1 ? '' : 's') : 'No reviews yet'}</div>
+            </div>
+          </div>
+
+          <p class="small text-muted-2 mt-1 mb-2">${esc(r.u.bio)}</p>
+
+          <div class="small-label">Can teach</div>
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            ${highlight.map(s => skillChip(s, 'Teach')).join('')}
+            ${r.teach.length > highlight.length
+              ? `<span class="chip">+${r.teach.length - highlight.length} more</span>` : ''}
+          </div>
+
+          <div class="small-label">Wants to learn</div>
+          <div class="d-flex flex-wrap gap-1">
+            ${r.learn.map(s => skillChip(s, 'Learn')).join('')}
+          </div>
+        </div>
+      </div>
+
+      ${matched ? `
+      <div class="mt-3">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="pill pill-accepted"><i class="bi bi-check-circle"></i>Two-way match</span>
+          <span class="small text-muted-2">Both of you get something out of this.</span>
+        </div>
+        ${swapCard('You teach', r.theyWantITeach[0].skill_name, 'On their learn list',
+                   'You learn', r.theyTeachIWant[0].skill_name,
+                   esc(r.theyTeachIWant[0].proficiency) + ' level')}
+      </div>` : ''}
+
+      <div class="d-flex gap-2 mt-3">
+        <button class="btn btn-sm ${matched ? 'btn-brand' : 'btn-outline-brand'}"
+          onclick="demoAction('INSERT INTO exchangerequests (sender_id, receiver_id, teach_skill, learn_skill, status) VALUES (${U.user_id}, ${r.u.user_id}, ..., Pending)')">
+          <i class="bi bi-send me-1"></i>Propose an exchange</button>
+        <a class="btn btn-sm btn-quiet" href="profile.html?id=${r.u.user_id}">View profile</a>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+function dropFilter(id) {
+  const el = document.getElementById(id);
+  if (el.type === 'checkbox') el.checked = false; else el.value = '';
+  runSearch();
+}
+function clearAll() {
+  ['fName', 'fSkill', 'fCategory', 'fDept', 'fLevel'].forEach(id => $('#' + id).value = '');
+  $('#fMatch').checked = false;
+  runSearch();
+}
+
+$('#applyBtn').addEventListener('click', runSearch);
+$('#clearBtn').addEventListener('click', clearAll);
+$('#sortBy').addEventListener('change', runSearch);
+['fName', 'fSkill'].forEach(id => $('#' + id).addEventListener('input', runSearch));
+['fCategory', 'fDept', 'fLevel', 'fMatch'].forEach(id =>
+  $('#' + id).addEventListener('change', runSearch));
+
+runSearch();
+</script>
+</body>
+</html>

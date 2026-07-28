@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% set nav_active = 'dashboard' %}
+{% set rail_active = 'admin' %}
+{% block title %}Admin console &mdash; SkillSwap NSU{% endblock %}
+
+{% block body %}
+<main class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-3"><div class="rail-sticky">{% include "_rail.html" %}</div></div>
+
+    <div class="col-lg-9">
+      <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+        <div>
+          <h1 style="font-size:1.4rem;margin-bottom:2px">
+            <i class="bi bi-shield-lock me-2" style="color:var(--brand)"></i>Admin console</h1>
+          <p class="text-muted-2 small mb-0">Deleting a student cascades to their
+            skills, requests, sessions and reviews.</p>
+        </div>
+        <a class="btn btn-sm btn-quiet" href="{{ url_for('main.dashboard') }}">
+          <i class="bi bi-box-arrow-left me-1"></i>Back to student view</a>
+      </div>
+
+      <div class="row g-2 mb-4">
+        {% for n, label in [(stats.students, 'Students'), (stats.skills, 'Skills'),
+                            (stats.pending, 'Pending requests'), (stats.upcoming, 'Upcoming sessions'),
+                            (stats.avg or '—', 'Average rating'), (stats.flagged, 'Low ratings to check')] %}
+          <div class="col-6 col-md-4 col-xl-2"><div class="stat">
+            <div class="stat-num" style="font-size:1.25rem">{{ n }}</div>
+            <div class="stat-label">{{ label }}</div></div></div>
+        {% endfor %}
+      </div>
+
+      <ul class="nav nav-pills mb-3">
+        {% for key, label in [('users', 'Students'), ('skills', 'Skills'),
+                              ('requests', 'Requests'), ('reviews', 'Review moderation')] %}
+          <li class="nav-item"><a class="nav-link btn-sm {{ 'active' if tab == key }}"
+             href="{{ url_for('admin.index', tab=key) }}">{{ label }}</a></li>
+        {% endfor %}
+      </ul>
+
+      <section class="panel">
+
+        {# ---------------- students ---------------- #}
+        {% if tab == 'users' %}
+          <div class="panel-head flex-wrap">
+            <h2><i class="bi bi-people me-2"></i>Students ({{ users|length }})</h2>
+            <form method="get" action="{{ url_for('admin.index') }}">
+              <input type="hidden" name="tab" value="users">
+              <input class="form-control form-control-sm w-auto" name="q" value="{{ q }}"
+                     placeholder="Search name, email or department">
+            </form>
+          </div>
+          <div class="table-responsive"><table class="table table-clean">
+            <thead><tr><th>#</th><th>Student</th><th>Department</th><th>Skills</th>
+              <th>Exchanges</th><th>Rating</th><th>Joined</th><th class="text-end">Action</th></tr></thead>
+            <tbody>
+              {% for u in users %}
+                <tr>
+                  <td class="text-muted-2">{{ u.user_id }}</td>
+                  <td><div class="d-flex gap-2 align-items-center">
+                        {{ m.av(u.user_id, u.name, 'default.png', 32) }}
+                        <div class="lh-sm min-w-0">
+                          <a href="{{ url_for('profile.view', user_id=u.user_id) }}"
+                             class="fw-semibold text-reset">{{ u.name }}</a>
+                          <div class="small text-muted-2 text-truncate" style="max-width:190px">{{ u.email }}</div>
+                        </div></div></td>
+                  <td>{{ u.department }}</td>
+                  <td class="small">{{ u.teach_n }} teach<br>
+                      <span class="text-muted-2">{{ u.learn_n }} learn</span></td>
+                  <td>{{ u.exchanges }}</td>
+                  <td>{% if u.total_reviews %}<span class="rating-num">{{ u.avg_rating }}</span>
+                        <span class="small text-muted-2">({{ u.total_reviews }})</span>
+                      {% else %}<span class="small text-muted-2">—</span>{% endif %}</td>
+                  <td class="text-muted-2 small">{{ u.created_at|fmt_date }}</td>
+                  <td class="text-end">
+                    <form method="post" action="{{ url_for('admin.delete_user', user_id=u.user_id) }}"
+                          data-confirm="Delete {{ u.name }}? ON DELETE CASCADE will also remove their skills, requests, sessions and reviews.">
+                      <button class="btn btn-sm btn-quiet text-danger" type="submit"
+                              {{ 'disabled' if u.user_id == me.user_id }}>
+                        <i class="bi bi-trash"></i><span class="visually-hidden">Delete</span></button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody></table></div>
+
+        {# ---------------- skills ---------------- #}
+        {% elif tab == 'skills' %}
+          <div class="panel-head flex-wrap">
+            <h2><i class="bi bi-mortarboard me-2"></i>Skill catalogue ({{ skills|length }})</h2>
+            <div class="d-flex gap-2">
+              <form method="get" action="{{ url_for('admin.index') }}">
+                <input type="hidden" name="tab" value="skills">
+                <input class="form-control form-control-sm w-auto" name="q" value="{{ q }}"
+                       placeholder="Search skill or category">
+              </form>
+              <button class="btn btn-sm btn-brand" data-bs-toggle="collapse" data-bs-target="#addSkillBox">
+                <i class="bi bi-plus-lg me-1"></i>Add skill</button>
+            </div>
+          </div>
+
+          <div class="collapse" id="addSkillBox">
+            <div class="panel-body border-bottom" style="border-color:var(--line)!important">
+              <form method="post" action="{{ url_for('admin.add_skill') }}"
+                    class="row g-2 align-items-end">
+                <div class="col-sm-4">
+                  <label class="form-label" for="nsName">Skill name</label>
+                  <input class="form-control form-control-sm" id="nsName" name="name"
+                         placeholder="e.g. Rust" required>
+                </div>
+                <div class="col-sm-3">
+                  <label class="form-label" for="nsCat">Category</label>
+                  <select class="form-select form-select-sm" id="nsCat" name="category">
+                    {% for c in categories %}<option>{{ c }}</option>{% endfor %}
+                  </select>
+                </div>
+                <div class="col-sm-3">
+                  <label class="form-label" for="nsDesc">Description</label>
+                  <input class="form-control form-control-sm" id="nsDesc" name="description"
+                         placeholder="One line">
+                </div>
+                <div class="col-sm-2 d-grid">
+                  <button class="btn btn-sm btn-brand" type="submit">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="table-responsive"><table class="table table-clean">
+            <thead><tr><th>#</th><th>Skill</th><th>Category</th><th>Description</th>
+              <th>Teachers</th><th>Learners</th><th class="text-end">Action</th></tr></thead>
+            <tbody>
+              {% for s in skills %}
+                <tr>
+                  <td class="text-muted-2">{{ s.skill_id }}</td>
+                  <td class="fw-semibold">{{ s.skill_name }}</td>
+                  <td><span class="pill pill-online">{{ s.category }}</span></td>
+                  <td class="small text-muted-2" style="max-width:260px">{{ s.description or '' }}</td>
+                  <td>{{ s.teachers }}</td><td>{{ s.learners }}</td>
+                  <td class="text-end">
+                    <form method="post" action="{{ url_for('admin.delete_skill', skill_id=s.skill_id) }}"
+                          data-confirm="Delete {{ s.skill_name }}?">
+                      <button class="btn btn-sm btn-quiet {{ '' if s.in_use else 'text-danger' }}"
+                              type="submit"
+                              title="{{ 'Referenced by an exchange request — ON DELETE RESTRICT will block this' if s.in_use else 'Delete' }}">
+                        <i class="bi bi-{{ 'lock' if s.in_use else 'trash' }}"></i>
+                        <span class="visually-hidden">{{ 'In use' if s.in_use else 'Delete' }}</span></button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody></table></div>
+
+        {# ---------------- requests ---------------- #}
+        {% elif tab == 'requests' %}
+          <div class="panel-head flex-wrap">
+            <h2><i class="bi bi-arrow-left-right me-2"></i>All exchange requests</h2>
+            <div class="d-flex flex-wrap gap-1">
+              {% for st, n in req_counts.items() %}
+                {{ m.pill(st) }}<span class="small ms-1 me-2">{{ n }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="table-responsive"><table class="table table-clean">
+            <thead><tr><th>#</th><th>Sender</th><th>Receiver</th><th>Offered</th>
+              <th>Requested</th><th>Status</th><th>Sessions</th><th>Opened</th></tr></thead>
+            <tbody>
+              {% for r in requests_rows %}
+                <tr>
+                  <td class="text-muted-2">{{ r.request_id }}</td>
+                  <td><a href="{{ url_for('profile.view', user_id=r.s_id) }}"
+                         class="text-reset fw-semibold">{{ r.s_name }}</a></td>
+                  <td><a href="{{ url_for('profile.view', user_id=r.r_id) }}"
+                         class="text-reset fw-semibold">{{ r.r_name }}</a></td>
+                  <td>{{ r.offered }}</td>
+                  <td>{{ r.requested }}</td>
+                  <td>{{ m.pill(r.status) }}</td>
+                  <td>{{ r.session_count }}</td>
+                  <td class="text-muted-2 small">{{ r.created_at|fmt_date }}</td>
+                </tr>
+              {% endfor %}
+            </tbody></table></div>
+          <div class="panel-body tight py-2 small text-muted-2">
+            Showing the 30 most recent of {{ total_requests }} requests.</div>
+
+        {# ---------------- review moderation ---------------- #}
+        {% else %}
+          <div class="panel-head flex-wrap">
+            <h2><i class="bi bi-flag me-2"></i>Reviews ({{ total_reviews }})</h2>
+            <span class="small text-muted-2">Sorted lowest first so problems surface at the top.</span>
+          </div>
+          <div class="table-responsive"><table class="table table-clean">
+            <thead><tr><th>#</th><th>Reviewer</th><th>About</th><th>Rating</th>
+              <th>Comment</th><th>Date</th><th class="text-end">Action</th></tr></thead>
+            <tbody>
+              {% for r in reviews %}
+                <tr>
+                  <td class="text-muted-2">{{ r.review_id }}</td>
+                  <td><a href="{{ url_for('profile.view', user_id=r.rv_id) }}"
+                         class="text-reset">{{ r.rv_name }}</a></td>
+                  <td><a href="{{ url_for('profile.view', user_id=r.re_id) }}"
+                         class="text-reset fw-semibold">{{ r.re_name }}</a></td>
+                  <td>{{ m.stars(r.rating) }}</td>
+                  <td class="small" style="max-width:320px">{{ r.comment }}</td>
+                  <td class="text-muted-2 small">{{ r.created_at|fmt_date }}</td>
+                  <td class="text-end">
+                    <form method="post" action="{{ url_for('admin.delete_review', review_id=r.review_id) }}"
+                          data-confirm="Delete review #{{ r.review_id }}?">
+                      <button class="btn btn-sm btn-quiet text-danger" type="submit">
+                        <i class="bi bi-trash"></i><span class="visually-hidden">Delete</span></button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody></table></div>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</main>
+{% endblock %}

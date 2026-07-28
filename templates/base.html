@@ -1,0 +1,114 @@
+{% import "macros.html" as m with context %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}SkillSwap NSU{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='vendor/bootstrap-icons/font/bootstrap-icons.min.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+{% block head %}{% endblock %}
+</head>
+<body{% block body_class %}{% endblock %}>
+
+{% if me and not hide_shell %}
+{# ============================ top navigation ============================ #}
+<nav class="topbar">
+  <div class="container d-flex align-items-center gap-3 py-1">
+    <a class="brand-mark" href="{{ url_for('main.dashboard') }}">
+      <span class="brand-glyph"><i class="bi bi-arrow-left-right"></i></span>
+      SkillSwap <span class="brand-tag">NSU</span>
+    </a>
+
+    <form class="nav-search flex-grow-1 d-none d-md-block" role="search"
+          action="{{ url_for('search.search') }}" method="get">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-transparent border-0 pe-1"
+              style="background:var(--brand-050)!important"><i class="bi bi-search text-muted-2"></i></span>
+        <input class="form-control border-0" name="q" type="search"
+               placeholder="Search students, skills or departments" aria-label="Search">
+      </div>
+    </form>
+
+    <div class="d-flex align-items-center ms-auto">
+      {% set NAV = [('dashboard', url_for('main.dashboard'), 'house-door', 'Home'),
+                    ('search',    url_for('search.search'),  'search', 'Find'),
+                    ('requests',  url_for('exchange.index'), 'arrow-left-right', 'Requests'),
+                    ('sessions',  url_for('sessions.index'), 'calendar-event', 'Sessions'),
+                    ('reviews',   url_for('reviews.index'),  'star', 'Reviews')] %}
+      {% for key, href, icon, label in NAV %}
+        <a class="topnav-link position-relative {{ 'active' if key == nav_active }}" href="{{ href }}">
+          <i class="bi bi-{{ icon }}"></i>{% if key == 'requests' and pending_count %}<span class="badge-dot">{{ pending_count }}</span>{% endif %}<span>{{ label }}</span>
+        </a>
+      {% endfor %}
+
+      <div class="dropdown ms-2">
+        <a class="topnav-link" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+          {{ m.avatar(me, 24) }}<span>Me <i class="bi bi-caret-down-fill" style="font-size:.55rem"></i></span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:230px">
+          <li class="px-3 py-2 d-flex gap-2 align-items-center">
+            {{ m.avatar(me, 40) }}
+            <div class="lh-sm">
+              <div class="fw-semibold">{{ me.name }}</div>
+              <div class="small text-muted-2">{{ me.department }}</div>
+            </div>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="{{ url_for('profile.view', user_id=me.user_id) }}">
+                <i class="bi bi-person me-2"></i>View profile</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('profile.edit') }}">
+                <i class="bi bi-pencil-square me-2"></i>Edit profile &amp; skills</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('admin.index') }}">
+                <i class="bi bi-shield-lock me-2"></i>Admin console</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+                <i class="bi bi-box-arrow-right me-2"></i>Sign out</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>
+{% endif %}
+
+{% block body %}{% endblock %}
+
+{% if not hide_footer %}
+<footer class="site-footer py-3 mt-4">
+  <div class="container small d-flex flex-wrap justify-content-between gap-2">
+    <span>SkillSwap NSU &middot; CSE311L Database Systems Lab</span>
+    <span>&copy; <span data-year></span></span>
+  </div>
+</footer>
+{% endif %}
+
+{# ============================ flash messages ============================ #}
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1080" id="toastHost">
+  {% for category, message in get_flashed_messages(with_categories=true) %}
+    {% set parts = message.split('||') %}
+    {% set tone = {'success':'text-bg-success','danger':'text-bg-danger',
+                   'warning':'text-bg-warning','info':'text-bg-dark'}.get(category, 'text-bg-dark') %}
+    <div class="toast align-items-center {{ tone }} border-0 show" data-auto-hide>
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-{{ {'success':'check-circle','danger':'exclamation-octagon',
+                              'warning':'exclamation-triangle'}.get(category, 'info-circle') }} me-1"></i>{{ parts[0] }}
+          {% if parts|length > 1 %}
+            <div class="mt-1 small" style="opacity:.85;font-family:ui-monospace,Menlo,Consolas,monospace">{{ parts[1] }}</div>
+          {% endif %}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

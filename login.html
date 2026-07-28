@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in &mdash; SkillSwap NSU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="static/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-white">
+
+<div class="container-fluid">
+  <div class="row min-vh-100">
+
+    <!-- ----------------------- left: the pitch ----------------------- -->
+    <aside class="col-lg-5 auth-side d-none d-lg-flex flex-column p-5">
+      <a class="brand-mark text-white" href="index.html">
+        <span class="brand-glyph" style="background:rgba(255,255,255,.18)">
+          <i class="bi bi-arrow-left-right"></i></span>
+        SkillSwap <span class="brand-tag"
+          style="background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">NSU</span>
+      </a>
+
+      <div class="my-auto" style="max-width:26rem">
+        <h1 style="font-size:2.1rem;line-height:1.15">Your classmates already
+          know what you are trying to learn.</h1>
+        <p class="mt-3 mb-4" style="opacity:.9">Sign in to see who can teach it,
+          and what they want from you in return.</p>
+
+        <div class="d-grid gap-3">
+          <div class="bullet"><i class="bi bi-arrow-left-right"></i>
+            <span>Two-way matches only &mdash; every exchange gives both students something.</span></div>
+          <div class="bullet"><i class="bi bi-calendar-check"></i>
+            <span>Book sessions online or at a spot on campus.</span></div>
+          <div class="bullet"><i class="bi bi-star"></i>
+            <span>Ratings come from finished sessions, so they mean something.</span></div>
+        </div>
+      </div>
+
+      <p class="small mb-0" style="opacity:.75">CSE311L Database Systems Lab
+        &middot; North South University</p>
+    </aside>
+
+    <!-- ----------------------- right: the form ----------------------- -->
+    <main class="col-lg-7 auth-wrap">
+      <div class="auth-card">
+        <a class="brand-mark d-lg-none mb-4" href="index.html">
+          <span class="brand-glyph"><i class="bi bi-arrow-left-right"></i></span>
+          SkillSwap <span class="brand-tag">NSU</span>
+        </a>
+
+        <h1 style="font-size:1.7rem">Sign in</h1>
+        <p class="text-muted-2">Use your North South University email address.</p>
+
+        <div class="panel p-3 mb-3" style="background:var(--brand-050);border-color:var(--brand-100)">
+          <div class="small-label mb-1">Demo account</div>
+          <div class="small mb-2">The seeded database ships with 50 students who
+            all share one password.</div>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-outline-brand" id="fillDemo" type="button">
+              <i class="bi bi-person-check me-1"></i>Fill demo credentials</button>
+          </div>
+        </div>
+
+        <form id="loginForm" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="email">Email address</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-envelope text-muted-2"></i></span>
+              <input type="email" class="form-control" id="email" name="email"
+                     autocomplete="username" placeholder="name.surname@northsouth.edu" required>
+            </div>
+            <div class="invalid-feedback d-block small" id="emailErr"></div>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label" for="password">Password</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-lock text-muted-2"></i></span>
+              <input type="password" class="form-control" id="password" name="password"
+                     autocomplete="current-password" placeholder="Your password" required>
+              <button class="btn btn-quiet" type="button" id="togglePw"
+                      aria-label="Show password"><i class="bi bi-eye"></i></button>
+            </div>
+            <div class="invalid-feedback d-block small" id="pwErr"></div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="remember" checked>
+              <label class="form-check-label small" for="remember">Keep me signed in</label>
+            </div>
+            <a href="#" class="small" onclick="event.preventDefault();
+               demoAction('Password recovery is out of scope for this lab project.')">Forgot password?</a>
+          </div>
+
+          <button class="btn btn-brand w-100 py-2" type="submit">Sign in</button>
+        </form>
+
+        <p class="text-center small mt-4 mb-0">New to SkillSwap?
+          <a href="register.html">Create an account</a></p>
+
+        <p class="text-center small text-muted-2 mt-4 mb-0">
+          Passwords are stored as Werkzeug pbkdf2 hashes, never as plain text.</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="static/js/data.js"></script>
+<script src="static/js/ui.js"></script>
+<script>
+const demoUser = userById(DEMO_USER_ID);
+
+$('#fillDemo').addEventListener('click', () => {
+  $('#email').value = demoUser.email;
+  $('#password').value = 'password123';
+  $('#emailErr').textContent = '';
+  $('#pwErr').textContent = '';
+});
+
+$('#togglePw').addEventListener('click', e => {
+  const inp = $('#password');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  e.currentTarget.innerHTML = `<i class="bi bi-eye${show ? '-slash' : ''}"></i>`;
+});
+
+/* Client-side validation mirrors the server-side checks in routes/auth.py */
+$('#loginForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const email = $('#email').value.trim().toLowerCase();
+  const pw = $('#password').value;
+  let ok = true;
+
+  if (!email) { $('#emailErr').textContent = 'Enter your email address.'; ok = false; }
+  else if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)) {
+    $('#emailErr').textContent = 'That does not look like an email address.'; ok = false;
+  } else { $('#emailErr').textContent = ''; }
+
+  if (!pw) { $('#pwErr').textContent = 'Enter your password.'; ok = false; }
+  else { $('#pwErr').textContent = ''; }
+  if (!ok) return;
+
+  const found = USERS.find(u => u.email.toLowerCase() === email);
+  if (!found) {
+    $('#emailErr').textContent = 'No account uses that email address.';
+    return;
+  }
+  if (pw !== 'password123') {
+    $('#pwErr').textContent = 'Wrong password. Every seeded account uses password123.';
+    return;
+  }
+  location.href = 'dashboard.html';
+});
+</script>
+</body>
+</html>

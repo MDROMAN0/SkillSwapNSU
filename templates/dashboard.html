@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% set nav_active = 'dashboard' %}
+{% set rail_active = 'dashboard' %}
+{% block title %}Home &mdash; SkillSwap NSU{% endblock %}
+
+{% block body %}
+<main class="container py-4">
+  <div class="row g-4">
+
+    <!-- ---------------------- left rail ---------------------- -->
+    <div class="col-lg-3 order-lg-1">
+      <div class="rail-sticky">{% include "_rail.html" %}</div>
+    </div>
+
+    <!-- ---------------------- main column ---------------------- -->
+    <div class="col-lg-6 order-lg-2">
+
+      <div class="mb-3">
+        <h1 style="font-size:1.4rem">{{ greeting }}, {{ me.name.split()[0] }}</h1>
+        <p class="text-muted-2 mb-0">You are teaching <strong>{{ my_teach|length }}</strong>
+          skill{{ '' if my_teach|length == 1 else 's' }}
+          and learning <strong>{{ my_learn|length }}</strong>.</p>
+      </div>
+
+      <div class="row g-2 mb-4">
+        {% for icon, n, label, href in [
+            ('bi-inbox', stats.pending, 'Requests to answer', url_for('exchange.index')),
+            ('bi-calendar-week', stats.upcoming, 'Upcoming sessions', url_for('sessions.index')),
+            ('bi-patch-check', stats.done, 'Completed exchanges', url_for('exchange.index', status='Completed', dir='all')),
+            ('bi-star-fill', stats.rating or '—', 'Your rating', url_for('reviews.index'))] %}
+          <div class="col-6 col-xl-3">
+            <a class="stat d-block text-reset text-decoration-none hover-lift" href="{{ href }}">
+              <i class="bi {{ icon }} mb-1" style="color:var(--brand)"></i>
+              <div class="stat-num" style="font-size:1.35rem">{{ n }}</div>
+              <div class="stat-label">{{ label }}</div>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- suggested matches: the core of the product -->
+      <section class="panel mb-4">
+        <div class="panel-head">
+          <h2><i class="bi bi-arrow-left-right me-2" style="color:var(--brand)"></i>Matches for you</h2>
+          <a href="{{ url_for('search.search') }}" class="small">Browse everyone</a>
+        </div>
+        <div class="panel-body">
+          {% if not matches %}
+            {{ m.empty('search', 'No two-way match yet. Adding another skill you want to learn widens the pool.',
+                       url_for('profile.edit'), 'Add a skill') }}
+          {% else %}
+            {% for x in matches %}
+              <article class="{{ 'mb-0' if loop.last else 'mb-3 pb-3 border-bottom' }}"
+                       style="{{ '' if loop.last else 'border-color:var(--line)!important' }}">
+                <div class="d-flex gap-2 align-items-center mb-2">
+                  {{ m.av(x.other.user_id, x.other.name, 'default.png', 40) }}
+                  <div class="lh-sm flex-grow-1 min-w-0">
+                    <a href="{{ url_for('profile.view', user_id=x.other.user_id) }}"
+                       class="fw-semibold text-reset">{{ x.other.name }}</a>
+                    <div class="small text-muted-2">{{ x.other.department }}</div>
+                  </div>
+                  <div class="text-end small">
+                    {{ m.stars(x.rating.avg) }}
+                    <div class="text-muted-2" style="font-size:11.5px">
+                      {% if x.rating.count %}{{ x.rating.count }} review{{ '' if x.rating.count == 1 else 's' }}
+                      {% else %}New here{% endif %}</div>
+                  </div>
+                </div>
+
+                {{ m.swap('You teach', x.give.skill_name, 'They listed it as a goal',
+                          'You learn', x.take.skill_name, x.take.proficiency ~ ' level') }}
+
+                <div class="d-flex gap-2 mt-2">
+                  <form method="post" action="{{ url_for('exchange.send') }}" class="d-inline">
+                    <input type="hidden" name="receiver_id" value="{{ x.other.user_id }}">
+                    <input type="hidden" name="teach_skill" value="{{ x.give.skill_id }}">
+                    <input type="hidden" name="learn_skill" value="{{ x.take.skill_id }}">
+                    <input type="hidden" name="next" value="{{ url_for('main.dashboard') }}">
+                    <button class="btn btn-sm btn-brand" type="submit">
+                      <i class="bi bi-send me-1"></i>Send request</button>
+                  </form>
+                  <a class="btn btn-sm btn-quiet"
+                     href="{{ url_for('profile.view', user_id=x.other.user_id) }}">View profile</a>
+                </div>
+              </article>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- requests waiting on me -->
+      <section class="panel mb-4">
+        <div class="panel-head">
+          <h2><i class="bi bi-inbox me-2" style="color:var(--brand)"></i>Waiting for your answer</h2>
+          <a href="{{ url_for('exchange.index') }}" class="small">All requests</a>
+        </div>
+        <div class="panel-body">
+          {% if not pending %}
+            {{ m.empty('inbox', 'Nothing waiting on you right now.') }}
+          {% else %}
+            {% for r in pending %}
+              <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+                <div class="d-flex gap-2 align-items-center min-w-0">
+                  {{ m.av(r.user_id, r.name, 'default.png', 32) }}
+                  <div class="lh-sm small">
+                    <a href="{{ url_for('profile.view', user_id=r.user_id) }}"
+                       class="fw-semibold text-reset">{{ r.name }}</a>
+                    <div class="text-muted-2">{{ r.created_at|fmt_date }}</div>
+                  </div>
+                </div>
+                <div class="d-flex gap-2">
+                  <form method="post" action="{{ url_for('exchange.accept', request_id=r.request_id) }}">
+                    <input type="hidden" name="next" value="{{ url_for('main.dashboard') }}">
+                    <button class="btn btn-sm btn-brand" type="submit">Accept</button>
+                  </form>
+                  <form method="post" action="{{ url_for('exchange.reject', request_id=r.request_id) }}">
+                    <input type="hidden" name="next" value="{{ url_for('main.dashboard') }}">
+                    <button class="btn btn-sm btn-quiet" type="submit">Decline</button>
+                  </form>
+                </div>
+                <div class="w-100">
+                  {{ m.swap('They teach', r.teach_name, r.department,
+                            'You teach', r.learn_name, 'Your listed skill') }}
+                </div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- next session -->
+      <section class="panel mb-4">
+        <div class="panel-head">
+          <h2><i class="bi bi-calendar-event me-2" style="color:var(--brand)"></i>Your next sessions</h2>
+          <a href="{{ url_for('sessions.index') }}" class="small">All sessions</a>
+        </div>
+        <div class="panel-body">
+          {% if not next_sessions %}
+            {{ m.empty('calendar-x', 'No session booked. Accept a request, then pick a time that suits you both.',
+                       url_for('exchange.index'), 'See requests') }}
+          {% else %}
+            {% for s in next_sessions %}
+              <div class="d-flex gap-3 align-items-start mb-3">
+                <div class="text-center flex-shrink-0" style="width:52px">
+                  <div class="small-label mb-0">{{ s.session_date|month }}</div>
+                  <div style="font-family:'Plus Jakarta Sans';font-weight:800;font-size:1.35rem;color:var(--brand-700);line-height:1">
+                    {{ s.session_date|day }}</div>
+                </div>
+                <div class="flex-grow-1 min-w-0">
+                  <div class="fw-semibold" style="font-size:.94rem">{{ s.skill_name }}
+                    <span class="text-muted-2 fw-normal">with {{ s.p_name }}</span></div>
+                  <div class="small text-muted-2">
+                    {{ s.session_time|fmt_time }} &middot; {{ s.duration }} min &middot;
+                    {{ s.meeting_link if s.mode == 'Online' else s.location }}
+                  </div>
+                  <div class="mt-1 d-flex gap-1">{{ m.mode_pill(s.mode) }}{{ m.pill(s.status) }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- reviews about me -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2><i class="bi bi-chat-quote me-2" style="color:var(--brand)"></i>What partners said</h2>
+          <a href="{{ url_for('reviews.index') }}" class="small">All reviews</a>
+        </div>
+        <div class="panel-body">
+          {% if not recent_reviews %}
+            {{ m.empty('chat-quote', 'No review yet. Finish a session and your partner can rate you.') }}
+          {% else %}
+            {% for r in recent_reviews %}
+              <div class="d-flex gap-2 mb-3">
+                {{ m.av(r.user_id, r.name, 'default.png', 32) }}
+                <div class="min-w-0">
+                  <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <a href="{{ url_for('profile.view', user_id=r.user_id) }}"
+                       class="fw-semibold text-reset small">{{ r.name }}</a>
+                    {{ m.stars(r.rating) }}
+                    <span class="small text-muted-2">{{ r.created_at|fmt_date }}</span>
+                  </div>
+                  <p class="small mb-0 text-muted-2">{{ r.comment }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <!-- ---------------------- right rail ---------------------- -->
+    <div class="col-lg-3 order-lg-3">
+      <div class="rail-sticky">
+
+        <section class="panel">
+          <div class="panel-head">
+            <h3><i class="bi bi-list-check me-2"></i>Your skills</h3>
+            <a href="{{ url_for('profile.edit') }}" class="small">Edit</a>
+          </div>
+          <div class="panel-body tight py-3">
+            {% for label, list, kind in [('I can teach', my_teach, 'Teach'),
+                                         ('I want to learn', my_learn, 'Learn')] %}
+              <div class="small-label mb-2">{{ label }}</div>
+              <div class="d-flex flex-wrap gap-1 mb-3">
+                {% for s in list %}{{ m.skill_chip(s, kind) }}
+                {% else %}<span class="small text-muted-2">Nothing listed yet</span>{% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h3><i class="bi bi-trophy me-2"></i>Top rated students</h3></div>
+          <div class="panel-body tight py-2">
+            {% for u in top_rated %}
+              <a class="d-flex gap-2 align-items-center py-2 text-reset text-decoration-none"
+                 href="{{ url_for('profile.view', user_id=u.user_id) }}">
+                {{ m.av(u.user_id, u.name, 'default.png', 32) }}
+                <div class="lh-sm min-w-0 flex-grow-1">
+                  <div class="fw-semibold text-truncate" style="font-size:13px">{{ u.name }}</div>
+                  <div class="small text-muted-2 text-truncate" style="font-size:11.5px">{{ u.department }}</div>
+                </div>
+                <span class="small"><span class="rating-num">{{ u.avg_rating }}</span>
+                  <i class="bi bi-star-fill" style="color:var(--star);font-size:10px"></i></span>
+              </a>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h3><i class="bi bi-fire me-2"></i>Skills in demand</h3></div>
+          <div class="panel-body tight py-3">
+            <div class="d-flex flex-wrap gap-1">
+              {% for d in demand %}
+                <a class="chip" href="{{ url_for('search.search', skill=d.skill_name) }}">
+                  {{ d.skill_name }} <span class="lvl">{{ d.learners }}</span></a>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home &mdash; SkillSwap NSU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="shellNav"></div>
+
+<main class="container py-4">
+  <div class="row g-4">
+
+    <!-- ---------------------- left rail ---------------------- -->
+    <div class="col-lg-3 order-lg-1">
+      <div class="rail-sticky" id="shellRail"></div>
+    </div>
+
+    <!-- ---------------------- main column ---------------------- -->
+    <div class="col-lg-6 order-lg-2">
+
+      <div class="mb-3">
+        <h1 style="font-size:1.4rem" id="greeting"></h1>
+        <p class="text-muted-2 mb-0" id="greetingSub"></p>
+      </div>
+
+      <div class="row g-2 mb-4" id="miniStats"></div>
+
+      <!-- suggested matches: the core of the product -->
+      <section class="panel mb-4">
+        <div class="panel-head">
+          <h2><i class="bi bi-arrow-left-right me-2" style="color:var(--brand)"></i>Matches for you</h2>
+          <a href="search.html" class="small">Browse everyone</a>
+        </div>
+        <div class="panel-body" id="matchList"></div>
+      </section>
+
+      <!-- requests waiting on me -->
+      <section class="panel mb-4">
+        <div class="panel-head">
+          <h2><i class="bi bi-inbox me-2" style="color:var(--brand)"></i>Waiting for your answer</h2>
+          <a href="requests.html" class="small">All requests</a>
+        </div>
+        <div class="panel-body" id="pendingList"></div>
+      </section>
+
+      <!-- next session -->
+      <section class="panel mb-4">
+        <div class="panel-head">
+          <h2><i class="bi bi-calendar-event me-2" style="color:var(--brand)"></i>Your next sessions</h2>
+          <a href="sessions.html" class="small">All sessions</a>
+        </div>
+        <div class="panel-body" id="nextSessions"></div>
+      </section>
+
+      <!-- reviews about me -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2><i class="bi bi-chat-quote me-2" style="color:var(--brand)"></i>What partners said</h2>
+          <a href="reviews.html" class="small">All reviews</a>
+        </div>
+        <div class="panel-body" id="recentReviews"></div>
+      </section>
+    </div>
+
+    <!-- ---------------------- right rail ---------------------- -->
+    <div class="col-lg-3 order-lg-3">
+      <div class="rail-sticky">
+
+        <section class="panel">
+          <div class="panel-head">
+            <h3><i class="bi bi-list-check me-2"></i>Your skills</h3>
+            <a href="edit-profile.html" class="small">Edit</a>
+          </div>
+          <div class="panel-body tight py-3" id="mySkills"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h3><i class="bi bi-trophy me-2"></i>Top rated students</h3></div>
+          <div class="panel-body tight py-2" id="topRated"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h3><i class="bi bi-fire me-2"></i>Skills in demand</h3></div>
+          <div class="panel-body tight py-3" id="demandList"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer py-3 mt-4">
+  <div class="container small d-flex flex-wrap justify-content-between gap-2">
+    <span>SkillSwap NSU &middot; CSE311L Database Systems Lab</span>
+    <span>&copy; <span data-year></span></span>
+  </div>
+</footer>
+
+<script src="static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="static/js/data.js"></script>
+<script src="static/js/ui.js"></script>
+<script>
+bootPage('dashboard');
+
+const U = me();
+const myTeach = skillsOf(U.user_id, 'Teach');
+const myLearn = skillsOf(U.user_id, 'Learn');
+const myReq   = requestsOf(U.user_id);
+const mySess  = sessionsOf(U.user_id);
+const myRate  = ratingOf(U.user_id);
+
+/* ---------------- greeting ---------------- */
+const hour = 10;   /* fixed for a stable demo; Flask uses the server clock */
+$('#greeting').textContent =
+  `${hour < 12 ? 'Good morning' : 'Good afternoon'}, ${U.name.split(' ')[0]}`;
+$('#greetingSub').innerHTML =
+  `You are teaching <strong>${myTeach.length}</strong> skill${myTeach.length === 1 ? '' : 's'}
+   and learning <strong>${myLearn.length}</strong>.`;
+
+/* ---------------- mini stats ---------------- */
+(function () {
+  const pending = myReq.received.filter(r => r.status === 'Pending').length;
+  const upcoming = mySess.filter(s => s.status === 'Scheduled').length;
+  const done = [...myReq.sent, ...myReq.received].filter(r => r.status === 'Completed').length;
+
+  const tiles = [
+    ['bi-inbox', pending, 'Requests to answer', 'requests.html'],
+    ['bi-calendar-week', upcoming, 'Upcoming sessions', 'sessions.html'],
+    ['bi-patch-check', done, 'Completed exchanges', 'requests.html'],
+    ['bi-star-fill', myRate.avg ?? '—', 'Your rating', 'reviews.html']
+  ];
+
+  $('#miniStats').innerHTML = tiles.map(([icon, n, label, href]) => `
+    <div class="col-6 col-xl-3">
+      <a class="stat d-block text-reset text-decoration-none hover-lift" href="${href}">
+        <i class="bi ${icon} mb-1" style="color:var(--brand)"></i>
+        <div class="stat-num" style="font-size:1.35rem">${n}</div>
+        <div class="stat-label">${label}</div>
+      </a>
+    </div>`).join('');
+})();
+
+/* ---------------- suggested matches ----------------
+   SQL equivalent: a self-join on userskills finding students who teach
+   something I want to learn AND want to learn something I teach,
+   excluding anyone I already have a request with.               */
+(function () {
+  const busy = new Set([...myReq.sent.map(r => r.receiver_id),
+                        ...myReq.received.map(r => r.sender_id)]);
+  const myTeachIds = new Set(myTeach.map(s => s.skill_id));
+  const myLearnIds = new Set(myLearn.map(s => s.skill_id));
+
+  const matches = [];
+  USERS.forEach(other => {
+    if (other.user_id === U.user_id || busy.has(other.user_id)) return;
+    const theyTeach = skillsOf(other.user_id, 'Teach').filter(s => myLearnIds.has(s.skill_id));
+    const theyWant  = skillsOf(other.user_id, 'Learn').filter(s => myTeachIds.has(s.skill_id));
+    if (theyTeach.length && theyWant.length) {
+      matches.push({ other, give: theyWant[0], take: theyTeach[0],
+                     score: theyTeach.length + theyWant.length });
+    }
+  });
+  matches.sort((a, b) => b.score - a.score || (ratingOf(b.other.user_id).avg || 0)
+                                            - (ratingOf(a.other.user_id).avg || 0));
+
+  if (!matches.length) {
+    $('#matchList').innerHTML = empty('search',
+      'No two-way match yet. Adding another skill you want to learn widens the pool.',
+      '<a class="btn btn-sm btn-brand" href="edit-profile.html">Add a skill</a>');
+    return;
+  }
+
+  const top3 = matches.slice(0, 3);
+  $('#matchList').innerHTML = top3.map((m, i) => {
+    const r = ratingOf(m.other.user_id);
+    const sep = i < top3.length - 1
+      ? 'mb-3 pb-3 border-bottom" style="border-color:var(--line)!important' : 'mb-0"';
+    return `
+    <article class="${sep}">
+      <div class="d-flex gap-2 align-items-center mb-2">
+        ${avatar(m.other, 40)}
+        <div class="lh-sm flex-grow-1 min-w-0">
+          <a href="profile.html?id=${m.other.user_id}" class="fw-semibold text-reset">${esc(m.other.name)}</a>
+          <div class="small text-muted-2">${esc(m.other.department)}</div>
+        </div>
+        <div class="text-end small">
+          ${stars(r.avg)}
+          <div class="text-muted-2" style="font-size:11.5px">
+            ${r.count ? r.count + ' review' + (r.count === 1 ? '' : 's') : 'New here'}</div>
+        </div>
+      </div>
+
+      ${swapCard('You teach', m.give.skill_name, 'They listed it as a goal',
+                 'You learn', m.take.skill_name, esc(m.take.proficiency) + ' level')}
+
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-sm btn-brand" onclick="demoAction('The Flask build INSERTs a Pending row into exchangerequests here.')">
+          <i class="bi bi-send me-1"></i>Send request</button>
+        <a class="btn btn-sm btn-quiet" href="profile.html?id=${m.other.user_id}">View profile</a>
+      </div>
+    </article>`;
+  }).join('');
+})();
+
+/* ---------------- pending requests ---------------- */
+(function () {
+  const rows = myReq.received.filter(r => r.status === 'Pending');
+  if (!rows.length) {
+    $('#pendingList').innerHTML = empty('inbox', 'Nothing waiting on you right now.');
+    return;
+  }
+  $('#pendingList').innerHTML = rows.map(r => {
+    const from = userById(r.sender_id);
+    return `
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+      <div class="d-flex gap-2 align-items-center min-w-0">
+        ${avatar(from, 32)}
+        <div class="lh-sm small">
+          <a href="profile.html?id=${from.user_id}" class="fw-semibold text-reset">${esc(from.name)}</a>
+          <div class="text-muted-2">${fmtDate(r.created)}</div>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-brand" onclick="demoAction('UPDATE exchangerequests SET status = Accepted WHERE request_id = ${r.request_id}')">Accept</button>
+        <button class="btn btn-sm btn-quiet" onclick="demoAction('UPDATE exchangerequests SET status = Rejected WHERE request_id = ${r.request_id}')">Decline</button>
+      </div>
+      <div class="w-100">
+        ${swapCard('They teach', skillById(r.teach_skill).skill_name, esc(from.department),
+                   'You teach', skillById(r.learn_skill).skill_name, 'Your listed skill')}
+      </div>
+    </div>`;
+  }).join('');
+})();
+
+/* ---------------- next sessions ---------------- */
+(function () {
+  const rows = mySess.filter(s => s.status === 'Scheduled')
+                     .sort((a, b) => a.session_date.localeCompare(b.session_date))
+                     .slice(0, 3);
+  if (!rows.length) {
+    $('#nextSessions').innerHTML = empty('calendar-x',
+      'No session booked. Accept a request, then pick a time that suits you both.',
+      '<a class="btn btn-sm btn-brand" href="requests.html">See requests</a>');
+    return;
+  }
+  $('#nextSessions').innerHTML = rows.map(s => {
+    const p = partnerOf(s, U.user_id);
+    const req = requestOfSession(s);
+    const skill = skillById(req.sender_id === U.user_id ? req.teach_skill : req.learn_skill);
+    return `
+    <div class="d-flex gap-3 align-items-start mb-3">
+      <div class="text-center flex-shrink-0" style="width:52px">
+        <div class="small-label mb-0">${fmtDate(s.session_date).split(' ')[1]}</div>
+        <div style="font-family:'Plus Jakarta Sans';font-weight:800;font-size:1.35rem;color:var(--brand-700);line-height:1">
+          ${Number(s.session_date.slice(8, 10))}</div>
+      </div>
+      <div class="flex-grow-1 min-w-0">
+        <div class="fw-semibold" style="font-size:.94rem">${esc(skill.skill_name)}
+          <span class="text-muted-2 fw-normal">with ${esc(p.name)}</span></div>
+        <div class="small text-muted-2">
+          ${fmtTime(s.session_time)} &middot; ${s.duration} min &middot;
+          ${s.mode === 'Online' ? esc(s.meeting_link) : esc(s.location)}
+        </div>
+        <div class="mt-1 d-flex gap-1">${modePill(s.mode)}${pill(s.status)}</div>
+      </div>
+    </div>`;
+  }).join('');
+})();
+
+/* ---------------- recent reviews about me ---------------- */
+(function () {
+  const rows = REVIEWS.filter(r => r.reviewee_id === U.user_id).slice(-3).reverse();
+  if (!rows.length) {
+    $('#recentReviews').innerHTML = empty('chat-quote',
+      'No review yet. Finish a session and your partner can rate you.');
+    return;
+  }
+  $('#recentReviews').innerHTML = rows.map(r => {
+    const from = userById(r.reviewer_id);
+    return `
+    <div class="d-flex gap-2 mb-3">
+      ${avatar(from, 32)}
+      <div class="min-w-0">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <a href="profile.html?id=${from.user_id}" class="fw-semibold text-reset small">${esc(from.name)}</a>
+          ${stars(r.rating)}
+          <span class="small text-muted-2">${fmtDate(r.created)}</span>
+        </div>
+        <p class="small mb-0 text-muted-2">${esc(r.comment)}</p>
+      </div>
+    </div>`;
+  }).join('');
+})();
+
+/* ---------------- right rail: my skills ---------------- */
+(function () {
+  const block = (label, list, kind) => `
+    <div class="small-label mb-2">${label}</div>
+    <div class="d-flex flex-wrap gap-1 mb-3">
+      ${list.length ? list.map(s => skillChip(s, kind)).join('')
+                    : '<span class="small text-muted-2">Nothing listed yet</span>'}
+    </div>`;
+  $('#mySkills').innerHTML = block('I can teach', myTeach, 'Teach')
+                           + block('I want to learn', myLearn, 'Learn');
+})();
+
+/* ---------------- right rail: top rated ---------------- */
+(function () {
+  const rated = USERS.map(u => ({ u, r: ratingOf(u.user_id) }))
+    .filter(x => x.r.count >= 2 && x.u.user_id !== U.user_id)
+    .sort((a, b) => b.r.avg - a.r.avg || b.r.count - a.r.count)
+    .slice(0, 5);
+
+  $('#topRated').innerHTML = rated.map(({ u, r }) => `
+    <a class="d-flex gap-2 align-items-center py-2 text-reset text-decoration-none"
+       href="profile.html?id=${u.user_id}">
+      ${avatar(u, 32)}
+      <div class="lh-sm min-w-0 flex-grow-1">
+        <div class="fw-semibold text-truncate" style="font-size:13px">${esc(u.name)}</div>
+        <div class="small text-muted-2 text-truncate" style="font-size:11.5px">${esc(u.department)}</div>
+      </div>
+      <span class="small"><span class="rating-num">${r.avg}</span>
+        <i class="bi bi-star-fill" style="color:var(--star);font-size:10px"></i></span>
+    </a>`).join('');
+})();
+
+/* ---------------- right rail: demand ---------------- */
+(function () {
+  const demand = {};
+  USERSKILLS.filter(us => us.skill_type === 'Learn')
+            .forEach(us => demand[us.skill_id] = (demand[us.skill_id] || 0) + 1);
+  const top = Object.entries(demand).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  $('#demandList').innerHTML = `<div class="d-flex flex-wrap gap-1">` + top.map(([sid, n]) => {
+    const s = skillById(sid);
+    return `<a class="chip" href="search.html?skill=${encodeURIComponent(s.skill_name)}">
+              ${esc(s.skill_name)} <span class="lvl">${n}</span></a>`;
+  }).join('') + `</div>`;
+})();
+</script>
+</body>
+</html>

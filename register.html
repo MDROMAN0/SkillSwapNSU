@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create account &mdash; SkillSwap NSU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="static/vendor/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="static/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-white">
+
+<div class="container-fluid">
+  <div class="row min-vh-100">
+
+    <aside class="col-lg-4 auth-side d-none d-lg-flex flex-column p-5">
+      <a class="brand-mark text-white" href="index.html">
+        <span class="brand-glyph" style="background:rgba(255,255,255,.18)">
+          <i class="bi bi-arrow-left-right"></i></span>
+        SkillSwap <span class="brand-tag"
+          style="background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">NSU</span>
+      </a>
+
+      <div class="my-auto" style="max-width:24rem">
+        <h1 style="font-size:1.95rem;line-height:1.15">One profile, two lists.</h1>
+        <p class="mt-3 mb-4" style="opacity:.9">Tell us what you can teach and
+          what you want to learn. Matching does the rest.</p>
+        <div class="d-grid gap-3">
+          <div class="bullet"><i class="bi bi-mortarboard"></i>
+            <span>Open to students of all 11 NSU departments.</span></div>
+          <div class="bullet"><i class="bi bi-cash-stack"></i>
+            <span>No fees, no payments, no wallets. Skills only.</span></div>
+          <div class="bullet"><i class="bi bi-shield-check"></i>
+            <span>Your password is hashed before it reaches the database.</span></div>
+        </div>
+      </div>
+
+      <p class="small mb-0" style="opacity:.75">CSE311L Database Systems Lab</p>
+    </aside>
+
+    <main class="col-lg-8 auth-wrap">
+      <div class="auth-card" style="max-width:560px">
+        <a class="brand-mark d-lg-none mb-4" href="index.html">
+          <span class="brand-glyph"><i class="bi bi-arrow-left-right"></i></span>
+          SkillSwap <span class="brand-tag">NSU</span>
+        </a>
+
+        <h1 style="font-size:1.7rem">Create your account</h1>
+        <p class="text-muted-2">Takes about a minute. You can add more skills later.</p>
+
+        <form id="regForm" novalidate>
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label" for="name">Full name</label>
+              <input class="form-control" id="name" placeholder="e.g. Nusrat Jahan" required>
+              <div class="invalid-feedback d-block small" data-err="name"></div>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label" for="dept">Department</label>
+              <select class="form-select" id="dept" required>
+                <option value="">Choose your department</option>
+              </select>
+              <div class="invalid-feedback d-block small" data-err="dept"></div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label" for="email">NSU email address</label>
+              <input type="email" class="form-control" id="email"
+                     placeholder="name.surname@northsouth.edu" required>
+              <div class="form-text">Must be unique &mdash; the
+                <code>users.email</code> column has a UNIQUE constraint.</div>
+              <div class="invalid-feedback d-block small" data-err="email"></div>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label" for="pw">Password</label>
+              <input type="password" class="form-control" id="pw"
+                     placeholder="At least 8 characters" required>
+              <div class="invalid-feedback d-block small" data-err="pw"></div>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label" for="pw2">Confirm password</label>
+              <input type="password" class="form-control" id="pw2" required>
+              <div class="invalid-feedback d-block small" data-err="pw2"></div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label" for="bio">Short bio <span class="text-muted-2 fw-normal">(optional)</span></label>
+              <textarea class="form-control" id="bio" rows="2" maxlength="255"
+                        placeholder="One or two lines about how you like to teach or learn."></textarea>
+              <div class="form-text"><span id="bioCount">0</span> / 255 characters</div>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label" for="teachSkill">A skill you can teach</label>
+              <select class="form-select" id="teachSkill" required></select>
+              <div class="invalid-feedback d-block small" data-err="teachSkill"></div>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label" for="teachLevel">Your level in it</label>
+              <select class="form-select" id="teachLevel">
+                <option>Intermediate</option><option>Advanced</option><option>Expert</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label" for="learnSkill">A skill you want to learn</label>
+              <select class="form-select" id="learnSkill" required></select>
+              <div class="invalid-feedback d-block small" data-err="learnSkill"></div>
+            </div>
+
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="agree" required>
+                <label class="form-check-label small" for="agree">
+                  I understand SkillSwap NSU is for skill exchange only and no
+                  money is involved.</label>
+                <div class="invalid-feedback d-block small" data-err="agree"></div>
+              </div>
+            </div>
+
+            <div class="col-12 d-grid">
+              <button class="btn btn-brand py-2" type="submit">Create account</button>
+            </div>
+          </div>
+        </form>
+
+        <p class="text-center small mt-4 mb-0">Already registered?
+          <a href="login.html">Sign in</a></p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="static/js/data.js"></script>
+<script src="static/js/ui.js"></script>
+<script>
+/* populate the selects straight from the seeded catalogue */
+$('#dept').insertAdjacentHTML('beforeend',
+  DEPARTMENTS.map(d => `<option>${esc(d)}</option>`).join(''));
+
+const skillOptions = CATEGORIES.map(cat => `
+  <optgroup label="${esc(cat)}">
+    ${SKILLS.filter(s => s.category === cat)
+            .map(s => `<option value="${s.skill_id}">${esc(s.skill_name)}</option>`).join('')}
+  </optgroup>`).join('');
+
+$('#teachSkill').innerHTML = '<option value="">Choose a skill</option>' + skillOptions;
+$('#learnSkill').innerHTML = '<option value="">Choose a skill</option>' + skillOptions;
+
+$('#bio').addEventListener('input', e => $('#bioCount').textContent = e.target.value.length);
+
+function setErr(field, msg) {
+  $(`[data-err="${field}"]`).textContent = msg || '';
+  return !msg;
+}
+
+$('#regForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('#name').value.trim();
+  const dept = $('#dept').value;
+  const email = $('#email').value.trim().toLowerCase();
+  const pw = $('#pw').value, pw2 = $('#pw2').value;
+  const t = $('#teachSkill').value, l = $('#learnSkill').value;
+
+  let ok = true;
+  ok = setErr('name', name.length < 3 ? 'Enter your full name.' : '') && ok;
+  ok = setErr('dept', !dept ? 'Choose your department.' : '') && ok;
+
+  let emailErr = '';
+  if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)) emailErr = 'Enter a valid email address.';
+  else if (USERS.some(u => u.email.toLowerCase() === email))
+    emailErr = 'That email is already registered. Try signing in instead.';
+  ok = setErr('email', emailErr) && ok;
+
+  ok = setErr('pw', pw.length < 8 ? 'Use at least 8 characters.' : '') && ok;
+  ok = setErr('pw2', pw2 !== pw ? 'The two passwords do not match.' : '') && ok;
+  ok = setErr('teachSkill', !t ? 'Pick one skill you can teach.' : '') && ok;
+
+  let learnErr = '';
+  if (!l) learnErr = 'Pick one skill you want to learn.';
+  else if (l === t) learnErr = 'Choose a different skill from the one you teach.';
+  ok = setErr('learnSkill', learnErr) && ok;
+
+  ok = setErr('agree', !$('#agree').checked ? 'Please confirm this before continuing.' : '') && ok;
+  if (!ok) return;
+
+  demoAction('Validation passed. The Flask build hashes the password and runs the '
+           + 'INSERT into users plus two INSERTs into userskills.');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% set nav_active = 'search' %}
+{% set rail_active = 'search' %}
+{% block title %}Find a partner &mdash; SkillSwap NSU{% endblock %}
+
+{% block body %}
+<main class="container py-4">
+  <div class="row g-4">
+
+    <!-- ---------------------- filters ---------------------- -->
+    <div class="col-lg-3">
+      <div class="rail-sticky">
+        <section class="panel">
+          <div class="panel-head">
+            <h2><i class="bi bi-funnel me-2" style="color:var(--brand)"></i>Filters</h2>
+            <a class="btn btn-sm btn-link p-0 text-decoration-none"
+               href="{{ url_for('search.search') }}">Clear</a>
+          </div>
+          <div class="panel-body">
+            <form id="filterForm" method="get" action="{{ url_for('search.search') }}">
+              <input type="hidden" name="sort" value="{{ f.sort }}">
+              <div class="mb-3">
+                <label class="form-label" for="fName">Student name</label>
+                <input class="form-control form-control-sm" id="fName" name="name"
+                       value="{{ f.name }}" placeholder="e.g. Rahman">
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="fSkill">Skill</label>
+                <input class="form-control form-control-sm" id="fSkill" name="skill"
+                       list="skillList" value="{{ f.skill }}" placeholder="e.g. Python">
+                <datalist id="skillList">
+                  {% for s in all_skills %}<option value="{{ s.skill_name }}">{% endfor %}
+                </datalist>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="fCategory">Category</label>
+                <select class="form-select form-select-sm" id="fCategory" name="category">
+                  <option value="">Any category</option>
+                  {% for c in categories %}
+                    <option {{ 'selected' if c == f.category }}>{{ c }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="fDept">Department</label>
+                <select class="form-select form-select-sm" id="fDept" name="department">
+                  <option value="">Any department</option>
+                  {% for d in departments %}
+                    <option {{ 'selected' if d == f.department }}>{{ d }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="fLevel">Experience level</label>
+                <select class="form-select form-select-sm" id="fLevel" name="level">
+                  <option value="">Any level</option>
+                  {% for l in LEVELS %}
+                    <option {{ 'selected' if l == f.level }}>{{ l }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="fMatch" name="match"
+                       value="1" {{ 'checked' if f.match }}>
+                <label class="form-check-label small" for="fMatch">
+                  Only two-way matches with me</label>
+              </div>
+              <button class="btn btn-brand btn-sm w-100" type="submit">Apply filters</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h3><i class="bi bi-lightbulb me-2"></i>Tip</h3></div>
+          <div class="panel-body">
+            <p class="small text-muted-2 mb-0">A two-way match means they teach
+              something on your learn list and want something on your teach list.
+              Those requests get accepted far more often.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ---------------------- results ---------------------- -->
+    <div class="col-lg-9">
+      <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+        <div>
+          <h1 style="font-size:1.4rem;margin-bottom:2px">Find a partner</h1>
+          <p class="text-muted-2 mb-0 small">{{ results|length }}
+            student{{ '' if results|length == 1 else 's' }} found out of {{ total_others }}</p>
+        </div>
+        <form class="d-flex align-items-center gap-2" method="get" action="{{ url_for('search.search') }}">
+          {% for k, v in [('name', f.name), ('skill', f.skill), ('category', f.category),
+                          ('department', f.department), ('level', f.level)] %}
+            {% if v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}
+          {% endfor %}
+          {% if f.match %}<input type="hidden" name="match" value="1">{% endif %}
+          <label class="form-label mb-0" for="sortBy">Sort by</label>
+          <select class="form-select form-select-sm w-auto" id="sortBy" name="sort">
+            {% for val, label in [('match', 'Best match'), ('rating', 'Highest rated'),
+                                  ('name', 'Name (A–Z)'), ('newest', 'Newest members')] %}
+              <option value="{{ val }}" {{ 'selected' if f.sort == val }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+
+      <div class="d-flex flex-wrap gap-1 mb-3">
+        {% for label, drop in [('Name contains "' ~ f.name ~ '"', 'name'),
+                               ('Skill: ' ~ f.skill, 'skill'),
+                               ('Category: ' ~ f.category, 'category'),
+                               ('Department: ' ~ f.department, 'department'),
+                               ('Level: ' ~ f.level, 'level')] %}
+          {% if f[drop] %}
+            <a class="chip" href="{{ url_for('search.search',
+                 name=('' if drop == 'name' else f.name),
+                 skill=('' if drop == 'skill' else f.skill),
+                 category=('' if drop == 'category' else f.category),
+                 department=('' if drop == 'department' else f.department),
+                 level=('' if drop == 'level' else f.level),
+                 match=('1' if f.match else ''), sort=f.sort) }}">{{ label }}
+              <i class="bi bi-x-lg" style="font-size:10px"></i></a>
+          {% endif %}
+        {% endfor %}
+        {% if f.match %}
+          <a class="chip" href="{{ url_for('search.search', name=f.name, skill=f.skill,
+               category=f.category, department=f.department, level=f.level, sort=f.sort) }}">
+            Two-way matches only <i class="bi bi-x-lg" style="font-size:10px"></i></a>
+        {% endif %}
+      </div>
+
+      <div class="d-grid gap-3">
+        {% if not results %}
+          {{ m.empty('person-x', 'No student matches these filters. Try widening the skill or removing the department.',
+                     url_for('search.search'), 'Clear filters') }}
+        {% endif %}
+
+        {% for r in results %}
+          {% set highlight = r.hits[:4] %}
+          <article class="panel p-3 hover-lift">
+            <div class="d-flex gap-3">
+              {{ m.avatar(r.u, 48) }}
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex flex-wrap justify-content-between gap-2">
+                  <div class="min-w-0">
+                    <a href="{{ url_for('profile.view', user_id=r.u.user_id) }}"
+                       class="fw-semibold text-reset" style="font-size:1rem">{{ r.u.name }}</a>
+                    <div class="small text-muted-2">{{ r.u.department }} &middot;
+                      joined {{ r.u.created_at|fmt_date }}</div>
+                  </div>
+                  <div class="text-end">
+                    {{ m.stars(r.rating.avg) }}
+                    <div class="small text-muted-2" style="font-size:11.5px">
+                      {% if r.rating.count %}{{ r.rating.avg }} from {{ r.rating.count }}
+                        review{{ '' if r.rating.count == 1 else 's' }}
+                      {% else %}No reviews yet{% endif %}</div>
+                  </div>
+                </div>
+
+                <p class="small text-muted-2 mt-1 mb-2">{{ r.u.bio or '' }}</p>
+
+                <div class="small-label">Can teach</div>
+                <div class="d-flex flex-wrap gap-1 mb-2">
+                  {% for s in highlight %}{{ m.skill_chip(s, 'Teach') }}{% endfor %}
+                  {% if r.teach|length > highlight|length %}
+                    <span class="chip">+{{ r.teach|length - highlight|length }} more</span>
+                  {% endif %}
+                </div>
+
+                <div class="small-label">Wants to learn</div>
+                <div class="d-flex flex-wrap gap-1">
+                  {% for s in r.learn %}{{ m.skill_chip(s, 'Learn') }}{% endfor %}
+                </div>
+              </div>
+            </div>
+
+            {% if r.matched %}
+              <div class="mt-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="pill pill-accepted"><i class="bi bi-check-circle"></i>Two-way match</span>
+                  <span class="small text-muted-2">Both of you get something out of this.</span>
+                </div>
+                {{ m.swap('You teach', r.they_want_i_teach[0].skill_name, 'On their learn list',
+                          'You learn', r.they_teach_i_want[0].skill_name,
+                          r.they_teach_i_want[0].proficiency ~ ' level') }}
+              </div>
+            {% endif %}
+
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-sm {{ 'btn-brand' if r.matched else 'btn-outline-brand' }}"
+                      type="button" data-bs-toggle="collapse"
+                      data-bs-target="#prop{{ r.u.user_id }}">
+                <i class="bi bi-send me-1"></i>Propose an exchange</button>
+              <a class="btn btn-sm btn-quiet"
+                 href="{{ url_for('profile.view', user_id=r.u.user_id) }}">View profile</a>
+            </div>
+
+            <!-- inline proposal form: INSERT INTO exchangerequests -->
+            <div class="collapse mt-3" id="prop{{ r.u.user_id }}">
+              <form method="post" action="{{ url_for('exchange.send') }}"
+                    class="panel p-3" style="background:var(--brand-050);border-color:var(--brand-100)">
+                <input type="hidden" name="receiver_id" value="{{ r.u.user_id }}">
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <div class="row g-2 align-items-end">
+                  <div class="col-sm-5">
+                    <label class="form-label">I will teach</label>
+                    <select class="form-select form-select-sm" name="teach_skill" required>
+                      {% for s in my_teach %}
+                        <option value="{{ s.skill_id }}"
+                          {{ 'selected' if r.they_want_i_teach and r.they_want_i_teach[0].skill_id == s.skill_id }}>
+                          {{ s.skill_name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-sm-5">
+                    <label class="form-label">I want to learn</label>
+                    <select class="form-select form-select-sm" name="learn_skill" required>
+                      {% for s in r.teach %}
+                        <option value="{{ s.skill_id }}"
+                          {{ 'selected' if r.they_teach_i_want and r.they_teach_i_want[0].skill_id == s.skill_id }}>
+                          {{ s.skill_name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-sm-2 d-grid">
+                    <button class="btn btn-brand btn-sm" type="submit">Send</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}

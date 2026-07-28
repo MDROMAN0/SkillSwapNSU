@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% set hide_shell = true %}
+{% set hide_footer = true %}
+{% block title %}SkillSwap NSU &mdash; Trade skills with your classmates{% endblock %}
+{% block head %}
+<meta name="description" content="SkillSwap NSU lets North South University students teach what they know and learn what they want, with no money changing hands. CSE311L Database Systems Lab project.">
+{% endblock %}
+
+{% block body %}
+<!-- ============================= top bar ============================= -->
+<nav class="topbar">
+  <div class="container d-flex align-items-center gap-3 py-2">
+    <a class="brand-mark" href="{{ url_for('main.index') }}">
+      <span class="brand-glyph"><i class="bi bi-arrow-left-right"></i></span>
+      SkillSwap <span class="brand-tag">NSU</span>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <a href="#how" class="btn btn-sm btn-quiet d-none d-sm-inline-flex">How it works</a>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-outline-brand">Sign in</a>
+      <a href="{{ url_for('auth.register') }}" class="btn btn-sm btn-brand">Create account</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================== hero ============================== -->
+<header class="hero">
+  <div class="container py-5">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="hero-eyebrow"><i class="bi bi-mortarboard-fill"></i>
+          North South University &middot; CSE311L</span>
+
+        <h1 class="mt-3">Teach one skill.<br>
+          <span class="hero-underline">Learn another.</span><br>
+          Pay nothing.</h1>
+
+        <p class="lead mt-3">SkillSwap NSU matches students who want each other's
+          skills. You list what you can teach and what you want to learn, the
+          platform finds the two-way match, and you book a session on campus or
+          online.</p>
+
+        <div class="d-flex flex-wrap gap-2 mt-4">
+          <a href="{{ url_for('auth.login') }}" class="btn btn-brand btn-pill px-4">
+            <i class="bi bi-play-circle me-1"></i>Sign in to the demo</a>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-quiet btn-pill px-4">Create an account</a>
+        </div>
+
+        <p class="small text-muted-2 mt-3 mb-0">
+          <i class="bi bi-info-circle me-1"></i>Every seeded student uses the password
+          <code>password123</code>, so any account lets you browse every screen.</p>
+      </div>
+
+      <!-- signature element: a real match, read straight out of MySQL -->
+      <div class="col-lg-6">
+        <div class="panel p-3 p-sm-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="small-label">A match from the live data</span>
+            <span class="pill pill-accepted"><i class="bi bi-check-circle"></i>Both sides agreed</span>
+          </div>
+          {% if hero %}
+            {{ m.swap(hero.sender_name ~ ' teaches', hero.teach_name,
+                      hero.sender_dept ~ ' · ' ~ hero.teach_cat,
+                      hero.receiver_name ~ ' teaches', hero.learn_name,
+                      hero.receiver_dept ~ ' · ' ~ hero.learn_cat) }}
+            <p class="small text-muted-2 mt-3 mb-0">
+              Request #{{ hero.request_id }} opened {{ hero.created_at|fmt_date }} &middot;
+              {{ hero.session_count }} session{{ '' if hero.session_count == 1 else 's' }} held
+              {%- if hero.avg_rating %} &middot; rated {{ hero.avg_rating }} out of 5{% endif %}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============================== stats ============================== -->
+<section class="py-4 bg-white border-bottom" style="border-color:var(--line)!important">
+  <div class="container">
+    <div class="row g-3">
+      {% for n, label in [(stats.students, 'Students registered'),
+                          (stats.skills, 'Skills in the catalogue'),
+                          (stats.completed, 'Exchanges completed'),
+                          (stats.hours ~ ' hrs', 'Teaching time logged'),
+                          (stats.avg or '—', 'Average partner rating')] %}
+        <div class="col-6 col-md">
+          <div class="stat">
+            <div class="stat-num">{{ n }}</div>
+            <div class="stat-label">{{ label }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============================ how it works ============================ -->
+<section id="how" class="py-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <span class="small-label">The exchange</span>
+        <h2 class="mt-1" style="font-size:1.7rem">Four steps, no payment</h2>
+        <p class="text-muted-2">Every exchange follows the same path, which is why
+          the request status is a single column in the database with five possible
+          values: Pending, Accepted, Rejected, Cancelled and Completed.</p>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-brand btn-sm">Browse students</a>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="row g-3">
+          {% for n, head, text in [
+            (1, 'List your skills', 'Mark each skill as something you can teach or something you want to learn, and set your level from Beginner to Expert.'),
+            (2, 'Send a request', 'Filter by skill, department or level, then offer a trade. Your partner sees exactly what each side gives and gets.'),
+            (3, 'Book the session', 'Pick a date, time and duration. Online sessions carry a meeting link, offline sessions carry a spot on campus.'),
+            (4, 'Review each other', 'After a completed session both partners can leave one rating out of five, which builds each student\'s average score.')] %}
+          <div class="col-sm-6">
+            <div class="panel h-100 p-3 hover-lift">
+              <div class="d-flex gap-2 align-items-center mb-2">
+                <span class="step-num">{{ n }}</span>
+                <h3 class="mb-0" style="font-size:.98rem">{{ head }}</h3>
+              </div>
+              <p class="small text-muted-2 mb-0">{{ text }}</p>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== skills on offer =========================== -->
+<section class="py-5 bg-white border-top border-bottom" style="border-color:var(--line)!important">
+  <div class="container">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+      <div>
+        <span class="small-label">Most requested right now</span>
+        <h2 class="mt-1 mb-0" style="font-size:1.5rem">What students want to learn</h2>
+      </div>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-quiet">See all {{ stats.skills }} skills</a>
+    </div>
+
+    <div class="row g-3">
+      {% for d in demand %}
+        <div class="col-sm-6 col-lg-4">
+          <a class="panel h-100 p-3 d-block hover-lift text-reset text-decoration-none"
+             href="{{ url_for('search.search', skill=d.skill_name) }}">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <h3 class="mb-0" style="font-size:1rem">{{ d.skill_name }}</h3>
+              <span class="pill pill-online">{{ d.category }}</span>
+            </div>
+            <p class="small text-muted-2 mt-2 mb-3">{{ d.description }}</p>
+            <div class="d-flex gap-3 small">
+              <span><strong>{{ d.teachers }}</strong> can teach</span>
+              <span class="text-muted-2"><strong>{{ d.learners }}</strong> want to learn</span>
+            </div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+
+    <hr class="my-4" style="border-color:var(--line)">
+
+    <span class="small-label">Departments taking part</span>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+      {% for d in dept_counts %}
+        <a class="chip" href="{{ url_for('search.search', department=d.department) }}">
+          {{ d.department }} <span class="lvl">{{ d.n }}</span></a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============================ about the build ============================ -->
+<section class="py-5">
+  <div class="container">
+    <div class="row g-4 align-items-start">
+      <div class="col-lg-5">
+        <span class="small-label">About this submission</span>
+        <h2 class="mt-1" style="font-size:1.5rem">Built for CSE311L</h2>
+        <p class="text-muted-2">SkillSwap NSU is a Database Systems Lab project.
+          The database is six normalised tables in MySQL with primary keys,
+          foreign keys, unique constraints, CHECK constraints and indexes, driven
+          by raw parameterised SQL &mdash; no ORM anywhere.</p>
+        <p class="text-muted-2 mb-0"><strong>About this page:</strong> every number
+          above was read from MySQL when the page loaded. Flask runs the queries,
+          Jinja renders the result, and every button on the signed-in screens writes
+          back to the same database.</p>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="panel h-100">
+              <div class="panel-head"><h3><i class="bi bi-hdd-stack me-2"></i>Database</h3></div>
+              <div class="panel-body tight">
+                <table class="table table-sm table-borderless small mb-0">
+                  {% for name, n in table_counts %}
+                    <tr><td class="ps-0"><code>{{ name }}</code></td>
+                        <td class="text-end pe-0 fw-semibold">{{ n }} rows</td></tr>
+                  {% endfor %}
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="panel h-100">
+              <div class="panel-head"><h3><i class="bi bi-braces me-2"></i>Stack</h3></div>
+              <div class="panel-body tight">
+                <ul class="list-unstyled small mb-0 d-grid gap-1">
+                  {% for line in ['Python 3 + Flask (Blueprints)', 'MySQL on XAMPP',
+                                  'mysql-connector-python, raw SQL', 'Werkzeug password hashing',
+                                  'HTML5, CSS3, Bootstrap 5.3', 'Vanilla JavaScript'] %}
+                    <li><i class="bi bi-check2 me-2" style="color:var(--brand)"></i>{{ line }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer py-4">
+  <div class="container d-flex flex-wrap justify-content-between gap-2">
+    <span>SkillSwap NSU &middot; CSE311L Database Systems Lab &middot;
+      North South University</span>
+    <span>&copy; <span data-year></span> Project team</span>
+  </div>
+</footer>
+{% endblock %}
